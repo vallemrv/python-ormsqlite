@@ -1,22 +1,9 @@
-# orm-python-sqlite
------------------
+# -*- coding: utf-8 -*-
+# allow direct execution
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-:package: Installation
------------------------
-
-Install it via `pip`
-
-`$ [sudo] pip install valleorm`
-
-Or download zip and then install it by running
-
-`$ [sudo] python setup.py install`
-
-
-Example from models JSON
-------------------------
-
-```python
 from valleorm.models import Models
 
 modelUser = {
@@ -94,20 +81,3 @@ user.getPk(1)
 print user.toJSON()
 row = user.salario.get()
 print Models.serialize(row)
-
-
-
-:yum: How to contribute
------------------------
-
-Have an idea? Found a bug? [add a new issue](https://github.com/vallemrv/orm-python-sqlite/issues) or [fork] (https://github.com/dmiro/iniconfig#fork-destination-box) and sendme a pull request. Don't forget to add your name to the Contributors section of this document.
-
-:scroll: License
-----------------
-
-Licensed under the Apache-2.0, see `LICENSE`
-
-:heart_eyes: Contributors
---------------------------
-
-Manuel Rodriguez <valle.mrv@gmail.com>
