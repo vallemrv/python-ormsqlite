@@ -95,7 +95,7 @@ print user.toJSON()
 row = user.salario.get()
 print Models.serialize(row)
 
-
+```
 
 :yum: How to contribute
 -----------------------
