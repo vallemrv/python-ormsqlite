@@ -69,7 +69,7 @@ class Models(object):
             tipo = type(getattr(self, key))
             if tipo is Campo:
                 campo = getattr(self, key)
-                setattr(self, "_"+key, Campo(default=campo.default, tipo=campo.tipo.get()))
+                setattr(self, "_"+key, Campo(default=campo.default, tipo=campo.tipo))
                 setattr(self, key, campo.default)
                 self.lstCampos.append(key)
             elif tipo is RelationShip:
@@ -79,7 +79,8 @@ class Models(object):
                                                 parent=self))
                 if relationship.tipo == "ONE":
                     colRelation = "ID"+relationship.name
-                    setattr(self, colRelation, Campo(dato=1, tipo="INTEGER"))
+                    setattr(self, "_"+colRelation, Campo(dato=1, tipo="INTEGER"))
+                    setattr(self, colRelation, 1)
                     self.lstCampos.append(colRelation)
                     sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
                     self.foreingKeys.append(sql.format(colRelation, self.tableName))

@@ -33,4 +33,5 @@ class Campo(object):
             return dato
 
     def toQuery(self):
-        return "{0} DEFAULT {1}".format(self.tipo, self.pack(self.default))
+        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
+        return "{0} {1}".format(self.tipo, strdefault)
