@@ -1,5 +1,4 @@
 # orm-python-sqlite
--------------------
 
 I've done it to work with kivy and android. It works great with mobile devices.
 For people who do not seek much complexity.
@@ -20,7 +19,7 @@ Or download zip and then install it by running
 Condition example
 -----------------
 ```javascript
-{
+conditionQuery = {
    query: "nombre='Lolo'",
    order: "ID DESC",
    limt: 10,
@@ -34,11 +33,17 @@ Condition example
         join: "ID=IDuser"
       },
       {
-         tableName: 'puesto', #for default is INNER JOIN
+         tableName: 'puesto', //for default is INNER JOIN
          join: 'ID=IDuser'
       }
    ]
 }
+
+```
+```python
+some_model = Models()
+rows = model.getAll(condition=conditionQuery)
+print Models.serialize(rows)
 
 ```
 
@@ -149,7 +154,7 @@ modelSalario = {
    {
      'fieldName': 'salario',
      'fieldTipo': 'REAL', #ACCEPT ONLY TEXT | REAL | INTEGER
-     'fieldDato': '0.0',
+     'fieldDato': 0.0,
    }
 ]
 }

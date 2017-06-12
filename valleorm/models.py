@@ -5,6 +5,8 @@
     Licencia: Apache v2.0
 
 """
+
+
 import sqlite3
 import json
 from campos import Campo

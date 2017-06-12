@@ -7,7 +7,6 @@
 
 """
 
-
 class RelationShip(object):
 
     def __init__(self, tipo, name, parent=None):

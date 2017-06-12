@@ -47,7 +47,7 @@ modelSalario = {
    {
      'fieldName': 'salario',
      'fieldTipo': 'REAL', #ACCEPT ONLY TEXT | REAL | INTEGER
-     'fieldDato': '0.0',
+     'fieldDato': 0.0,
    }
 ]
 }

@@ -6,7 +6,6 @@
     Licencia: Apache v2.0
 
 """
-
 class Campo(object):
     def __init__(self, default=None, tipo=None, dato=None):
         if dato:

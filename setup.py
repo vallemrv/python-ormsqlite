@@ -1,8 +1,20 @@
 from setuptools import setup, find_packages
 
+long_description = ''
+
+try:
+  import requests
+  r = requests.post(url='http://c.docverter.com/convert',
+                    data={'to':'rst','from':'markdown'},
+                    files={'input_files[]':open('README.md','rb')})
+  if r.ok:
+    long_description = r.content
+except:
+  pass
+
 setup(
 	name = 'valleorm',
-	version = ‘1.0.0’,
+	version = ‘0.1.0’,
 	author = 'Manuel Rodriguez',
 	author_email = 'valle.mrv@gmail.com',
 	description = 'Es una orm simple, con modelos JSON o derivados de la clase Models',
