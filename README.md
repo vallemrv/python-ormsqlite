@@ -1,5 +1,10 @@
 # orm-python-sqlite
------------------
+-------------------
+
+I've done it to work with kivy and android. It works great with mobile devices.
+For people who do not seek much complexity.
+Just create the model and you can create JSON queries.
+
 
 :package: Installation
 -----------------------
@@ -12,6 +17,90 @@ Or download zip and then install it by running
 
 `$ [sudo] python setup.py install`
 
+Condition example
+-----------------
+```javascript
+{
+   query: "nombre='Lolo'",
+   order: "ID DESC",
+   limt: 10,
+   offset: 20,
+   colunms: ["user.nombre, SUM(salario.salario) AS total"],
+   group: "salario.mes"
+   joins: [
+      {
+        typeJoin: "INNER LEFT",
+        tableName: "salario",
+        join: "ID=IDuser"
+      },
+      {
+         tableName: 'puesto', #for default is INNER JOIN
+         join: 'ID=IDuser'
+      }
+   ]
+}
+
+```
+
+Example from Class inheritance Models
+-------------------------------------
+```python
+from valleorm.models import Models
+from valleorm.campos import Campo
+from valleorm.relationship import RelationShip
+
+
+class User(Models):
+   nombre = Campo(default="", tipo="TEXT")
+   mail = Campo(default="", tipo="TEXT")
+   salario = RelationShip(tipo="MANY", name="salario")
+   def __init__(self):
+       super(User, self).__init__(tableName="user", dbName="valleorm.db" )
+
+
+
+class Salario(Models):
+   mes = Campo(default="", tipo="TEXT")
+   salario = Campo(default=0.0, tipo="REAL")
+   user = RelationShip(tipo="ONE", name="user")
+   def __init__(self):
+       super(Salario, self).__init__(tableName="salario", dbName="valleorm.db" )
+
+
+
+user = User()
+user.nombre = "manolo cara bolo"
+user.mail = "jjjrrisl@ejemoplo.com"
+user.save()
+
+sal = Salario()
+sal.mes = "Mayo"
+sal.salario = 1500
+user.salario.add(sal)
+
+sal = Salario()
+sal.mes = "Junio"
+sal.salario = 1500
+user.salario.add(sal)
+
+sal = Salario()
+sal.mes = "Julio"
+sal.salario = 1500
+user.salario.add(sal)
+
+sal = Salario()
+sal.mes = "Agosto"
+sal.salario = 1500
+user.salario.add(sal)
+
+#get user by ID
+user.getPk(1)
+print user.toJSON()
+row = user.salario.get()
+print Models.serialize(row)
+
+
+```
 
 Example from models JSON
 ------------------------
