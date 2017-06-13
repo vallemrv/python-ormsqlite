@@ -18,6 +18,13 @@ class RelationShip(object):
         if self.tipo == "MANY":
             setattr(child, "ID"+self.name, self.parent.ID)
             child.save()
+        elif self.tipo == "MANYTOMANY":
+            from models import Models
+            reg = Models(tableName=self.parent.relationName, dbName=self.parent.dbName)
+            reg.loadSchema()
+            setattr(reg, "ID"+self.parent.tableName, self.parent.ID)
+            setattr(reg, "ID"+child.tableName, child.ID)
+            reg.save()
 
     def get(self, condition={}):
         from models import Models
@@ -38,11 +45,16 @@ class RelationShip(object):
             return this.getAll(condition)
         if self.tipo  == "MANYTOMANY":
             this = Models(tableName=self.name, dbName=self.parent.dbName)
-            query = ""
+            query = "{0}={1}".format(self.parent.relationName+".ID"+self.parent.tableName, self.parent.ID)
+            condition["colunms"] = [self.name+".*"]
+            condition["joins"] = [
+                {
+                  'tableName': self.parent.relationName,
+                  'join': self.parent.relationName+".ID"+self.name+"="+self.name+".ID"
+                }
+            ]
             if "query" in condition:
-                query = condition.get("query")
-                query += " AND {0}={1}".format("ID"+self.name, self.parent.ID)
-            else:
-                query = "{0}={1}".format("ID"+self.name, self.parent.ID)
+                query += " AND %s" % condition.get("query")
+
             condition["query"] = query
             return this.getAll(condition)

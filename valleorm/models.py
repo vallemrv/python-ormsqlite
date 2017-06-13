@@ -6,7 +6,6 @@
 
 """
 
-
 import sqlite3
 import json
 from campos import Campo
@@ -17,6 +16,7 @@ from relationship import RelationShip
 class Models(object):
 
     def __init__(self, tableName, dbName, model=None):
+        self.path = "./"
         self.lstCampos = []
         self.foreingKeys = []
         self.ID = -1
@@ -57,13 +57,28 @@ class Models(object):
                             sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
                             self.foreingKeys.append(sql.format(colRelation, name))
                         elif m.get("relationTipo") == "MANYTOMANY":
-                            self.__crear_tb_nexo__()
+                            self.__crear_tb_nexo__(m.get("relationName"))
                     else:
                         raise Exception("initModel",
                         'Falta informacion en la relacion. Siga el manual')
 
-    def __crear_tb_nexo__(self):
-        pass
+
+
+    def __find_db_nexo__(self, tb1, tb2):
+        db = sqlite3.connect(self.path+self.dbName)
+        cursor= db.cursor()
+        condition = " AND (name='{0}' OR name='{1}')".format(tb1+"_"+tb2, tb2+"_"+tb1)
+        sql = "SELECT name FROM sqlite_master WHERE type='table' %s;" % condition
+        cursor.execute(sql)
+        reg = cursor.fetchall()
+        db.commit()
+        db.close()
+        find = False
+        if len(reg) > 0:
+            find = True
+            self.relationName = reg[0][0]
+        return find
+
 
     #Introspection of the inherited class
     def __init_campos__(self):
@@ -87,8 +102,22 @@ class Models(object):
                     sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
                     self.foreingKeys.append(sql.format(colRelation, self.tableName))
                 elif relationship.tipo == "MANYTOMANY":
-                    self.__crear_tb_nexo__()
+                    self.__crear_tb_nexo__(relationship.name)
 
+
+    def __crear_tb_nexo__(self, relationName):
+        if not self.__find_db_nexo__(self.tableName, relationName):
+            nexoName = self.tableName+"_"+relationName
+            idnexo1 = "ID"+self.tableName
+            idnexo2 = "ID"+relationName
+
+            IDprimary = "ID INTEGER PRIMARY KEY AUTOINCREMENT"
+            frgKey = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE, ".format(idnexo1, self.tableName)
+            frgKey += "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE".format(idnexo2, relationName)
+            sql = "CREATE TABLE IF NOT EXISTS {0} ({1}, {2} ,{3}, {4});".format(nexoName,
+                                                                IDprimary, idnexo1+" INTEGER ",
+                                                                idnexo2+" INTEGER ", frgKey)
+            self.execute(sql)
 
 
     def __crearDb__(self):
@@ -103,16 +132,24 @@ class Models(object):
                                                             self.tableName,
                                                             frgKey)
 
-        db = sqlite3.connect(self.dbName)
+        self.execute(sql)
+
+    def loadSchema(self):
+        db = sqlite3.connect(self.path+self.dbName)
         cursor= db.cursor()
+        sql = "PRAGMA table_info(%s);" % self.tableName
         cursor.execute(sql)
+        reg = cursor.fetchall()
         db.commit()
         db.close()
-
+        datos = {}
+        for d in reg:
+            datos[d[1]] = d[4]
+        self.__cargarDatos(datos)
 
 
     def save(self):
-        if self.ID == -1:
+        if self.ID == -1 or self.ID == None:
             keys =[]
             vals = []
             for key in self.lstCampos:
@@ -133,7 +170,7 @@ class Models(object):
             values = ", ".join(vals)
             sql = "UPDATE {0}  SET {1} WHERE ID={2};".format(self.tableName,
                                                              values, self.ID);
-        db = sqlite3.connect(self.dbName)
+        db = sqlite3.connect(self.path+self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         if self.ID == -1:
@@ -143,14 +180,8 @@ class Models(object):
 
     def remove(self):
         sql = "DELETE FROM {0} WHERE ID={1};".format(self.tableName,
-                                                     self.ID);
-
-        db = sqlite3.connect(self.dbName)
-        cursor= db.cursor()
-        cursor.execute("PRAGMA foreign_keys = ON;")
-        cursor.execute(sql)
-        db.commit()
-        db.close()
+                                                     self.ID)
+        self.execute(sql)
         self.ID = -1
 
     def __getenerateJoins(self, joins):
@@ -170,12 +201,15 @@ class Models(object):
         limit = "" if not 'limit' in condition else "LIMIT %s" % condition.get("limit")
         offset = "" if not 'offset' in condition else "OFFSET %s" % condition.get('offset')
         colunms = "*" if not 'colunms' in condition else ", ".join(condition.get("colunms"))
-        joins = "" if not 'joins' in condition else self.__generateJoins(condition.get("joins"))
+        joins = "" if not 'joins' in condition else self.__getenerateJoins(condition.get("joins"))
         group = "" if not 'group' in condition else "GROUP BY %s" % condition.get("group")
         sql = "SELECT {0} FROM {1} {2} {3} {4} {5} {6};".format(colunms, self.tableName,
                                                          joins, order, query, limit, offset)
 
-        db = sqlite3.connect(self.dbName)
+        return self.select(sql)
+
+    def select(self, sql):
+        db = sqlite3.connect(self.path+self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         reg = cursor.fetchall()
@@ -187,41 +221,16 @@ class Models(object):
         for r in reg:
             res = dict({k[0]: v for k, v in list(zip(d, r))})
             obj = Models(tableName=self.tableName, dbName=self.dbName)
-            for k, v in res.items():
-                if k == "ID":
-                    obj.ID = v
-                else:
-                    setattr(obj, "_"+k, Campo(dato=v))
-                    setattr(obj, k, v)
-                obj.lstCampos.append(k)
+            obj.__cargarDatos(res)
 
             registros.append(obj)
 
         return registros
 
-    def select(self, query):
-        registros = []
-
-        if sqlite3.complete_statement(unicode(query)):
-            db = sqlite3.connect(self.dbName)
-            cursor= db.cursor()
-            cursor.execute(query)
-            reg = cursor.fetchall()
-            d = cursor.description
-            db.commit()
-            db.close()
-
-            for r in reg:
-                res = dict({k[0]: v for k, v in list(zip(d, r))})
-                obj = Models(tableName=self.tableName, dbName=self.dbName)
-                obj.__cargarDatos(res)
-                registros.append(obj)
-
-        return registros
 
     def execute(self, query):
         if sqlite3.complete_statement(query):
-            db = sqlite3.connect(self.dbName)
+            db = sqlite3.connect(self.path+self.dbName)
             cursor= db.cursor()
             cursor.execute(query)
             db.commit()
@@ -229,7 +238,7 @@ class Models(object):
 
     def getPk(self, idr):
         sql = "SELECT * FROM {0} WHERE ID={1};".format(self.tableName, idr)
-        db = sqlite3.connect(self.dbName)
+        db = sqlite3.connect(self.path+self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         reg = cursor.fetchone()
