@@ -1,8 +1,6 @@
-# orm-python-sqlite
+# python-ormsqlite
 
-I've done it to work with kivy and android. It works great with mobile devices.
-For people who do not seek much complexity.
-Just create the model and you can create JSON queries.
+I've done it to work with kivy and android. It works great with mobile devices. For people who do not seek much complexity. It is simple but you can perform more or less complex queries. Create a model quickly in seconds. Just create the model and you can create JSON queries.
 
 
 :package: Installation
