@@ -7,7 +7,7 @@
 
 """
 class Campo(object):
-    def __init__(self, default=None, tipo=None, dato=None):
+    def __init__(self, default=None, tipo="TEXT", dato=None):
         if dato:
             self.tipo = self.__getTipo(dato);
             self.default = dato;

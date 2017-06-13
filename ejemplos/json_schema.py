@@ -77,7 +77,7 @@ sal.salario = "1400"
 user.salario.add(sal)
 
 #get user by ID
-user.getPk(1)
+user.loadByPk(1)
 print user.toJSON()
 row = user.salario.get()
 print Models.serialize(row)

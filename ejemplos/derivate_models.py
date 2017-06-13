@@ -51,8 +51,8 @@ sal.mes = "Agosto"
 sal.salario = 1500
 user.salario.add(sal)
 
-#get user by ID
-user.getPk(1)
+#Load data user by ID
+user.loadByPk(1)
 print user.toJSON()
 row = user.salario.get()
 print Models.serialize(row)

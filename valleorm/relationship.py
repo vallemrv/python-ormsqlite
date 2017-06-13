@@ -6,13 +6,21 @@
     Licencia: Apache v2.0
 
 """
-
 class RelationShip(object):
 
     def __init__(self, tipo, name, parent=None):
         self.tipo = tipo
         self.name = name
         self.parent = parent
+
+    def remove(self, child):
+        from models import Models
+        if self.tipo == "MANYTOMANY":
+            reg = Models(tableName=self.parent.relationName, dbName=self.parent.dbName)
+            query = "{0}={1}".format("ID"+self.parent.tableName, self.parent.ID)
+            query += " AND {0}={1}".format("ID"+child.tableName, child.ID)
+            reg.loadByQuery(condition={"query":query})
+            reg.remove()
 
     def add(self, child):
         if self.tipo == "MANY":
@@ -21,7 +29,6 @@ class RelationShip(object):
         elif self.tipo == "MANYTOMANY":
             from models import Models
             reg = Models(tableName=self.parent.relationName, dbName=self.parent.dbName)
-            reg.loadSchema()
             setattr(reg, "ID"+self.parent.tableName, self.parent.ID)
             setattr(reg, "ID"+child.tableName, child.ID)
             reg.save()

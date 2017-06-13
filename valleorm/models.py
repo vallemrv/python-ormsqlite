@@ -27,8 +27,12 @@ class Models(object):
             self.__init_model__()
         else:
             self.__init_campos__()
+
         if len(self.lstCampos) > 0:
             self.__crearDb__()
+        else:
+            self.__loadSchema__()
+
 
     #Introspection of  the models
     def __init_model__(self):
@@ -100,7 +104,7 @@ class Models(object):
                     setattr(self, colRelation, 1)
                     self.lstCampos.append(colRelation)
                     sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
-                    self.foreingKeys.append(sql.format(colRelation, self.tableName))
+                    self.foreingKeys.append(sql.format(colRelation, relationship.name))
                 elif relationship.tipo == "MANYTOMANY":
                     self.__crear_tb_nexo__(relationship.name)
 
@@ -131,10 +135,20 @@ class Models(object):
         sql = "CREATE TABLE IF NOT EXISTS {1} ({0}{2});".format(values,
                                                             self.tableName,
                                                             frgKey)
-
         self.execute(sql)
 
-    def loadSchema(self):
+    def __getenerateJoins__(self, joins):
+        strJoins = []
+        for j in joins:
+            typeJoin = "INNER JOIN " if not "typeJoin" in j else j.get("typeJoin")
+            if not "tableName" in j or not "join" in j: raise Exception("joins",
+            "La clausulas joins no cumplen con las especificaciones. Consulte el manual")
+            sql = "{0} {1} ON {2}".format(typeJoin, j.get("tableName"),  j.get("join"))
+            strJoins.append(sql)
+
+        return "" if len(strJoins) <=0 else ", ".join(strJoins)
+
+    def __loadSchema__(self):
         db = sqlite3.connect(self.path+self.dbName)
         cursor= db.cursor()
         sql = "PRAGMA table_info(%s);" % self.tableName
@@ -145,11 +159,20 @@ class Models(object):
         datos = {}
         for d in reg:
             datos[d[1]] = d[4]
-        self.__cargarDatos(datos)
+        self.__cargarDatos__(datos)
 
+    def __cargarDatos__(self, datos):
+        for k, v in datos.items():
+            if k=="ID":
+                self.ID = v
+            else:
+                setattr(self, "_"+k, Campo(dato=v))
+                setattr(self, k, v)
+                self.lstCampos.append(k)
 
     def save(self):
-        if self.ID == -1 or self.ID == None:
+        self.ID = -1 if self.ID == None else self.ID
+        if self.ID == -1:
             keys =[]
             vals = []
             for key in self.lstCampos:
@@ -179,21 +202,22 @@ class Models(object):
         db.close()
 
     def remove(self):
+        self.ID = -1 if self.ID == None else self.ID
         sql = "DELETE FROM {0} WHERE ID={1};".format(self.tableName,
                                                      self.ID)
         self.execute(sql)
         self.ID = -1
 
-    def __getenerateJoins(self, joins):
-        strJoins = []
-        for j in joins:
-            typeJoin = "INNER JOIN " if not "typeJoin" in j else j.get("typeJoin")
-            if not "tableName" in j or not "join" in j: raise Exception("joins",
-            "La clausulas joins no cumplen con las especificaciones. Consulte el manual")
-            sql = "{0} {1} ON {2}".format(typeJoin, j.get("tableName"),  j.get("join"))
-            strJoins.append(sql)
+    def vaciar(self):
+        self.ID = -1;
+        self.execute("DELETE FROM %s;" % self.tableName)
 
-        return "" if len(strJoins) <=0 else ", ".join(strJoins)
+    def loadByQuery  (self, condition={}):
+        reg = self.getAll(condition)
+        if len(reg) > 0:
+            self.__cargarDatos__(reg[0].toDICT())
+
+
 
     def getAll(self, condition={}):
         order = "" if not 'order' in condition else "ORDER BY %s" % unicode(condition.get('order'))
@@ -201,11 +225,10 @@ class Models(object):
         limit = "" if not 'limit' in condition else "LIMIT %s" % condition.get("limit")
         offset = "" if not 'offset' in condition else "OFFSET %s" % condition.get('offset')
         colunms = "*" if not 'colunms' in condition else ", ".join(condition.get("colunms"))
-        joins = "" if not 'joins' in condition else self.__getenerateJoins(condition.get("joins"))
+        joins = "" if not 'joins' in condition else self.__getenerateJoins__(condition.get("joins"))
         group = "" if not 'group' in condition else "GROUP BY %s" % condition.get("group")
         sql = "SELECT {0} FROM {1} {2} {3} {4} {5} {6};".format(colunms, self.tableName,
                                                          joins, order, query, limit, offset)
-
         return self.select(sql)
 
     def select(self, sql):
@@ -220,8 +243,11 @@ class Models(object):
 
         for r in reg:
             res = dict({k[0]: v for k, v in list(zip(d, r))})
-            obj = Models(tableName=self.tableName, dbName=self.dbName)
-            obj.__cargarDatos(res)
+            if self.__class__ is Models:
+                obj = Models(tableName=self.tableName, dbName=self.dbName)
+            else:
+                obj = self.__class__()
+            obj.__cargarDatos__(res)
 
             registros.append(obj)
 
@@ -232,22 +258,16 @@ class Models(object):
         if sqlite3.complete_statement(query):
             db = sqlite3.connect(self.path+self.dbName)
             cursor= db.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON;")
             cursor.execute(query)
             db.commit()
             db.close()
 
-    def getPk(self, idr):
+    def loadByPk(self, idr):
         sql = "SELECT * FROM {0} WHERE ID={1};".format(self.tableName, idr)
-        db = sqlite3.connect(self.path+self.dbName)
-        cursor= db.cursor()
-        cursor.execute(sql)
-        reg = cursor.fetchone()
-        d = cursor.description
-        db.commit()
-        db.close()
-        if reg:
-            res = dict({k[0]: v for k, v in list(zip(d, reg))})
-            self.__cargarDatos(res)
+        rows = self.select(sql)
+        if len(rows) > 0:
+            self.__cargarDatos__(rows[0].toDICT())
 
 
     def toJSON(self):
@@ -264,14 +284,7 @@ class Models(object):
 
         return js
 
-    def __cargarDatos(self, datos):
-        for k, v in datos.items():
-            if k=="ID":
-                self.ID = v
-            else:
-                setattr(self, "_"+k, Campo(dato=v))
-                setattr(self, k, v)
-                self.lstCampos.append(k)
+
 
 
     @staticmethod
@@ -292,7 +305,7 @@ class Models(object):
         registros = []
         for l in lista:
             obj = Models(tableName=l["tableName"], dbName=l["dbName"])
-            obj.__cargarDatos(l["datos"])
+            obj.__cargarDatos__(l["datos"])
             registros.append(obj)
 
         return registros
