@@ -14,6 +14,10 @@ Or download zip and then install it by running
 
 `$ [sudo] python setup.py install`
 
+For kivy project only copy folder valleorm on root folder kivy project.
+And create your models simply.
+
+
 Condition example
 -----------------
 ```javascript
