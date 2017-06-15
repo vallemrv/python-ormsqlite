@@ -194,7 +194,9 @@ print Models.serialize(row)
 :yum: How to contribute
 -----------------------
 
-Have an idea? Found a bug? [add a new issue](https://github.com/vallemrv/orm-python-sqlite/issues) or [fork] (https://github.com/vallemrv/orm-python-sqlite#fork-destination-box) and sendme a pull request. Don't forget to add your name to the Contributors section of this document.
+Have an idea? Found a bug? [add a new issue](https://github.com/vallemrv/orm-python-sqlite/issues) or
+[fork] (https://github.com/vallemrv/orm-python-sqlite#fork-destination-box)
+and sendme a pull request. Don't forget to add your name to the Contributors section of this document.
 
 :scroll: License
 ----------------
