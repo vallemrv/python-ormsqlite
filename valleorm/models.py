@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Programa Gestion para el TPV del Btres
+"""python-ormsqlite Orm simple, potente y versatil
 
     Autor: Manuel Rodriguez
     Licencia: Apache v2.0
@@ -8,6 +8,7 @@
 
 import sqlite3
 import json
+import base64
 from campos import Campo
 from relationship import RelationShip
 
@@ -23,48 +24,61 @@ class Models(object):
         self.tableName = tableName
         self.dbName = dbName
         self.model = model
+        self.__crea_tb_models__()
         if self.model:
             self.__init_model__()
-        else:
+        elif not type(self) is Models:
             self.__init_campos__()
 
         if len(self.lstCampos) > 0:
             self.__crearDb__()
         else:
-            self.__loadSchema__()
+            self.__loadModels__()
+
+    def __crea_tb_models__(self):
+        IDprimary = "ID INTEGER PRIMARY KEY AUTOINCREMENT"
+        sql = "CREATE TABLE IF NOT EXISTS models_db (%s, table_name TEXT UNIQUE, model TEXT);"
+        sql = sql % IDprimary
+        self.execute(sql)
+
+    def __save_model__(self, strModel):
+        sql = "INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
+        sql = sql.format(self.tableName, strModel)
+        self.execute(sql)
 
 
     #Introspection of  the models
     def __init_model__(self):
-        if self.model:
-            if "fields" in self.model:
-                for m in self.model.get("fields"):
-                    if "fieldName" in m  and "fieldDato" in m and "fieldTipo" in m:
-                        setattr(self, "_"+m.get('fieldName'),
-                                Campo(default=m.get("fieldDato"), tipo=m.get("fieldTipo")))
-                        setattr(self, m.get('fieldName'), m.get("fieldDato"))
-                        self.lstCampos.append(m.get("fieldName"))
-                    else:
-                        raise Exception("initModel",
-                        'El modelo tiene que contener una extructura concreta. Siga el manual')
-            if "relationship" in self.model:
-                for m in self.model.get("relationship"):
-                    if "relationTipo" in m  and "relationName" in  m:
-                        setattr(self, m.get('relationName'),
-                                RelationShip(tipo=m.get("relationTipo"), name=m.get("relationName"), parent=self))
-                        if m.get("relationTipo") == "ONE":
-                            colRelation = "ID"+m.get('relationName')
-                            name = m.get('relationName')
-                            setattr(self, "_"+colRelation, Campo(default= 1, tipo="INTEGER"))
-                            setattr(self, colRelation, 1)
-                            self.lstCampos.append(colRelation)
-                            sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
-                            self.foreingKeys.append(sql.format(colRelation, name))
-                        elif m.get("relationTipo") == "MANYTOMANY":
-                            self.__crear_tb_nexo__(m.get("relationName"))
-                    else:
-                        raise Exception("initModel",
-                        'Falta informacion en la relacion. Siga el manual')
+        if len(self.model['fields']) > 0:
+            self.__save_model__(base64.b64encode(json.dumps(self.model)))
+        if "fields" in self.model:
+            for m in self.model.get("fields"):
+                if "fieldName" in m  and "fieldDato" in m and "fieldTipo" in m:
+                    setattr(self, "_"+m.get('fieldName'),
+                            Campo(default=m.get("fieldDato"), tipo=m.get("fieldTipo")))
+                    setattr(self, m.get('fieldName'), m.get("fieldDato"))
+                    self.lstCampos.append(m.get("fieldName"))
+                else:
+                    raise Exception("initModel",
+                    'El modelo tiene que contener una extructura concreta. Siga el manual')
+        if "relationship" in self.model:
+            for m in self.model.get("relationship"):
+                if "relationTipo" in m  and "relationName" in  m:
+                    setattr(self, m.get('relationName'),
+                            RelationShip(tipo=m.get("relationTipo"), name=m.get("relationName"), parent=self))
+                    if m.get("relationTipo") == "ONE":
+                        colRelation = "ID"+m.get('relationName')
+                        name = m.get('relationName')
+                        setattr(self, "_"+colRelation, Campo(default= 1, tipo="INTEGER"))
+                        setattr(self, colRelation, 1)
+                        self.lstCampos.append(colRelation)
+                        sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
+                        self.foreingKeys.append(sql.format(colRelation, name))
+                    elif m.get("relationTipo") == "MANYTOMANY":
+                        self.__crear_tb_nexo__(m.get("relationName"))
+                else:
+                    raise Exception("initModel",
+                    'Falta informacion en la relacion. Siga el manual')
 
 
 
@@ -74,40 +88,35 @@ class Models(object):
         condition = " AND (name='{0}' OR name='{1}')".format(tb1+"_"+tb2, tb2+"_"+tb1)
         sql = "SELECT name FROM sqlite_master WHERE type='table' %s;" % condition
         cursor.execute(sql)
-        reg = cursor.fetchall()
+        reg = cursor.fetchone()
         db.commit()
         db.close()
         find = False
-        if len(reg) > 0:
+        if reg:
             find = True
-            self.relationName = reg[0][0]
+            self.relationName = reg[0]
         return find
 
 
     #Introspection of the inherited class
     def __init_campos__(self):
+        self.model = {'fields':[],'relationship':[]}
         for key in dir(self):
             tipo = type(getattr(self, key))
             if tipo is Campo:
                 campo = getattr(self, key)
-                setattr(self, "_"+key, Campo(default=campo.default, tipo=campo.tipo))
-                setattr(self, key, campo.default)
-                self.lstCampos.append(key)
+                self.model["fields"].append(
+                            {"fieldName":key,
+                             "fieldTipo":campo.tipo,
+                             "fieldDato": campo.default
+                             })
             elif tipo is RelationShip:
                 relationship = getattr(self, key)
-                setattr(self, key, RelationShip(tipo=relationship.tipo,
-                                                name=relationship.name,
-                                                parent=self))
-                if relationship.tipo == "ONE":
-                    colRelation = "ID"+relationship.name
-                    setattr(self, "_"+colRelation, Campo(dato=1, tipo="INTEGER"))
-                    setattr(self, colRelation, 1)
-                    self.lstCampos.append(colRelation)
-                    sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
-                    self.foreingKeys.append(sql.format(colRelation, relationship.name))
-                elif relationship.tipo == "MANYTOMANY":
-                    self.__crear_tb_nexo__(relationship.name)
-
+                self.model["relationship"].append(
+                            {"relationTipo":relationship.tipo,
+                             "relationName":relationship.name
+                             })
+        self.__init_model__()
 
     def __crear_tb_nexo__(self, relationName):
         if not self.__find_db_nexo__(self.tableName, relationName):
@@ -122,6 +131,24 @@ class Models(object):
                                                                 IDprimary, idnexo1+" INTEGER ",
                                                                 idnexo2+" INTEGER ", frgKey)
             self.execute(sql)
+            nexoModel = {
+            'fields':[{
+                "fieldName":  idnexo1,
+                 "fieldTipo": "INTEGER",
+                 "fieldDato": 1
+                },
+                {
+                "fieldName":  idnexo2,
+                 "fieldTipo": "INTEGER",
+                 "fieldDato": 1
+                },
+                ]}
+
+
+            sql = "INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
+            sql = sql.format(nexoName, base64.b64encode(json.dumps(nexoModel)))
+            self.execute(sql)
+
 
 
     def __crearDb__(self):
@@ -148,18 +175,18 @@ class Models(object):
 
         return "" if len(strJoins) <=0 else ", ".join(strJoins)
 
-    def __loadSchema__(self):
+
+    def __loadModels__(self):
+        sql = "SELECT model FROM models_db WHERE table_name='%s'" % self.tableName
         db = sqlite3.connect(self.path+self.dbName)
         cursor= db.cursor()
-        sql = "PRAGMA table_info(%s);" % self.tableName
         cursor.execute(sql)
-        reg = cursor.fetchall()
+        reg = cursor.fetchone()
         db.commit()
         db.close()
-        datos = {}
-        for d in reg:
-            datos[d[1]] = d[4]
-        self.__cargarDatos__(datos)
+        if reg:
+            self.model = json.loads(base64.b64decode(reg[0]))
+            self.__init_model__()
 
     def __cargarDatos__(self, datos):
         for k, v in datos.items():
@@ -243,10 +270,7 @@ class Models(object):
 
         for r in reg:
             res = dict({k[0]: v for k, v in list(zip(d, r))})
-            if self.__class__ is Models:
-                obj = Models(tableName=self.tableName, dbName=self.dbName)
-            else:
-                obj = self.__class__()
+            obj = Models(tableName=self.tableName, dbName=self.dbName)
             obj.__cargarDatos__(res)
 
             registros.append(obj)
@@ -265,9 +289,16 @@ class Models(object):
 
     def loadByPk(self, idr):
         sql = "SELECT * FROM {0} WHERE ID={1};".format(self.tableName, idr)
-        rows = self.select(sql)
-        if len(rows) > 0:
-            self.__cargarDatos__(rows[0].toDICT())
+        db = sqlite3.connect(self.path+self.dbName)
+        cursor= db.cursor()
+        cursor.execute(sql)
+        reg = cursor.fetchone()
+        d = cursor.description
+        db.commit()
+        db.close()
+        if reg:
+            res = dict({k[0]: v for k, v in list(zip(d, reg))})
+            self.__cargarDatos__(res)
 
 
     def toJSON(self):
@@ -300,7 +331,7 @@ class Models(object):
         return json.dumps(lista)
 
     @staticmethod
-    def deSerialize(cls, dbJSON):
+    def deSerialize(dbJSON):
         lista = json.loads(dbJSON)
         registros = []
         for l in lista:
@@ -309,3 +340,15 @@ class Models(object):
             registros.append(obj)
 
         return registros
+
+    @staticmethod
+    def dropDB(dbName):
+        sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '%sqlite%';"
+        db = sqlite3.connect(dbName)
+        cursor= db.cursor()
+        cursor.execute(sql)
+        reg = cursor.fetchall()
+        for r in reg:
+            cursor.execute("DROP TABLE %s" % r)
+        db.commit()
+        db.close()

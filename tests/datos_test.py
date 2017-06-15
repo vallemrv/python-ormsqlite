@@ -76,4 +76,5 @@ class DatosTest(unittest.TestCase):
         puesto.user.add(user)
 
 if __name__ == '__main__':
+    Models.dropDB("valleorm.db")
     DatosTest().runTest()

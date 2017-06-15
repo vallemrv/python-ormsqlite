@@ -19,6 +19,12 @@ def test_foreingkey():
     print "Salarios despues de vaciar usuarios no puede haber"
     print Salario.serialize(Salario().getAll())
 
+def test_schema():
+    user = Models(tableName="user", dbName="valleorm.db")
+    user.loadByPk(1)
+    puestos = user.puesto.get()
+    print Puesto.serialize(puestos)
+
 
 if __name__ == '__main__':
-    test_foreingkey()
+    test_schema()

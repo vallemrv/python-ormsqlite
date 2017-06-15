@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Programa Gestion para el TPV del Btres
+"""python-ormsqlite Orm simple, potente y versatil
 
     Autor: Manuel Rodriguez
     Licencia: Apache v2.0
