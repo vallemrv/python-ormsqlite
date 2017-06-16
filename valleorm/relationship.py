@@ -53,7 +53,7 @@ class RelationShip(object):
         if self.tipo  == "MANYTOMANY":
             this = Models(tableName=self.name, dbName=self.parent.dbName)
             query = "{0}={1}".format(self.parent.relationName+".ID"+self.parent.tableName, self.parent.ID)
-            condition["colunms"] = [self.name+".*"]
+            condition["columns"] = [self.name+".*"]
             condition["joins"] = [
                 {
                   'tableName': self.parent.relationName,

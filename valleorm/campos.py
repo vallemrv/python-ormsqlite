@@ -8,12 +8,13 @@
 """
 class Campo(object):
     def __init__(self, default=None, tipo="TEXT", dato=None):
+        self.dato = dato
         if dato:
             self.tipo = self.__getTipo(dato);
             self.default = dato;
         else:
             self.default = "" if not default else default
-            self.tipo = "REAL" if not tipo else tipo
+            self.tipo = "TEXT" if not tipo else tipo
 
     def __getTipo(self, dato):
         tipo = type(dato)
@@ -26,8 +27,8 @@ class Campo(object):
 
 
     def pack(self, dato):
-        if self.tipo is "TEXT":
-            return '"{0}"'.format(unicode(dato))
+        if self.tipo == "TEXT":
+            return '\"{0}\"'.format(unicode(dato))
         else:
             return dato
 

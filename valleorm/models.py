@@ -16,8 +16,8 @@ from relationship import RelationShip
 
 class Models(object):
 
-    def __init__(self, tableName, dbName, model=None):
-        self.path = "./"
+    def __init__(self, tableName, dbName, path="./dbs/", model=None):
+        self.path = path
         self.lstCampos = []
         self.foreingKeys = []
         self.ID = -1
@@ -197,6 +197,13 @@ class Models(object):
                 setattr(self, k, v)
                 self.lstCampos.append(k)
 
+
+    def appendRelations(self, relations):
+        for relation in relations:
+            self.model["relationship"].append(relation)
+        self.__init_model__()
+        self.loadByPk(self.ID)
+        
     def save(self):
         self.ID = -1 if self.ID == None else self.ID
         if self.ID == -1:
@@ -216,6 +223,7 @@ class Models(object):
             for key in self.lstCampos:
                 _val = getattr(self, "_"+key)
                 val = getattr(self, key)
+
                 vals.append("{0} = {1}".format(key, _val.pack(val)))
             values = ", ".join(vals)
             sql = "UPDATE {0}  SET {1} WHERE ID={2};".format(self.tableName,
@@ -251,7 +259,7 @@ class Models(object):
         query = "" if not 'query' in condition else "WHERE %s" % unicode(condition.get("query"))
         limit = "" if not 'limit' in condition else "LIMIT %s" % condition.get("limit")
         offset = "" if not 'offset' in condition else "OFFSET %s" % condition.get('offset')
-        colunms = "*" if not 'colunms' in condition else ", ".join(condition.get("colunms"))
+        columns = "*" if not 'columns' in condition else ", ".join(condition.get("columns"))
         joins = "" if not 'joins' in condition else self.__getenerateJoins__(condition.get("joins"))
         group = "" if not 'group' in condition else "GROUP BY %s" % condition.get("group")
         sql = "SELECT {0} FROM {1} {2} {3} {4} {5} {6};".format(colunms, self.tableName,
@@ -342,13 +350,48 @@ class Models(object):
         return registros
 
     @staticmethod
-    def dropDB(dbName):
+    def dropDB(dbName, path="./dbs/"):
         sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '%sqlite%';"
-        db = sqlite3.connect(dbName)
+        db = sqlite3.connect(path+dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         reg = cursor.fetchall()
         for r in reg:
             cursor.execute("DROP TABLE %s" % r)
+        db.commit()
+        db.close()
+
+    @staticmethod
+    def exitsTable(dbName, tableName,  path="./dbs/"):
+        sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='%s';"
+        sql = sql % tableName
+        db = sqlite3.connect(path+dbName)
+        cursor= db.cursor()
+        cursor.execute(sql)
+        reg = cursor.fetchone()
+        db.commit()
+        db.close()
+        return reg != None
+
+    @staticmethod
+    def getModel(path, dbName, tableName):
+        sql = "SELECT model FROM models_db WHERE table_name='%s'" % tableName
+        db = sqlite3.connect(path+dbName)
+        cursor= db.cursor()
+        cursor.execute(sql)
+        reg = cursor.fetchone()
+        db.commit()
+        db.close()
+        if reg:
+            return json.loads(base64.b64decode(reg[0]))
+
+    @staticmethod
+    def alter(path, dbName, tableName, field):
+        sql = "ALTER TABLE {0} ADD COLUMN {1} {2} DEFAULT {3}"
+        sql = sql.format(tableName, field["fieldName"], field["fieldTipo"], field["fieldDato"])
+        db = sqlite3.connect(path+dbName)
+        cursor= db.cursor()
+        print sql
+        cursor.execute(sql)
         db.commit()
         db.close()
