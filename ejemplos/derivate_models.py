@@ -25,7 +25,7 @@ class Salario(Models):
        super(Salario, self).__init__(tableName="salario", dbName="valleorm.db" )
 
 
-
+Models.dropDB
 user = User()
 user.nombre = "manolo cara bolo"
 user.mail = "jjjrrisl@ejemoplo.com"

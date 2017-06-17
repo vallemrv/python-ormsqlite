@@ -51,7 +51,7 @@ modelSalario = {
    }
 ]
 }
-
+Models.dropDB("valleorm.db")
 user = Models(tableName= "user", dbName="valleorm.db", model=modelUser)
 sal = Models(tableName= "salario", dbName="valleorm.db", model=modelSalario)
 

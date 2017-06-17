@@ -15,8 +15,11 @@ class RelationShip(object):
 
     def remove(self, child):
         from models import Models
+        if self.tipo == "MANY":
+            child.remove()
         if self.tipo == "MANYTOMANY":
-            reg = Models(tableName=self.parent.relationName, dbName=self.parent.dbName)
+            reg = Models(tableName=self.parent.relationName, dbName=self.parent.dbName,
+                        path=self.parent.path)
             query = "{0}={1}".format("ID"+self.parent.tableName, self.parent.ID)
             query += " AND {0}={1}".format("ID"+child.tableName, child.ID)
             reg.loadByQuery(condition={"query":query})
@@ -28,7 +31,8 @@ class RelationShip(object):
             child.save()
         elif self.tipo == "MANYTOMANY":
             from models import Models
-            reg = Models(tableName=self.parent.relationName, dbName=self.parent.dbName)
+            reg = Models(tableName=self.parent.relationName,
+                    dbName=self.parent.dbName, path=self.parent.path)
             setattr(reg, "ID"+self.parent.tableName, self.parent.ID)
             setattr(reg, "ID"+child.tableName, child.ID)
             reg.save()
@@ -36,12 +40,14 @@ class RelationShip(object):
     def get(self, condition={}):
         from models import Models
         if self.tipo == "ONE":
-            this = Models(tableName=self.name, dbName=self.parent.dbName)
+            this = Models(tableName=self.name, dbName=self.parent.dbName,
+                path=self.parent.path)
             idParent = getattr(self.parent, "ID"+sel.name)
             this.getPk(idParent)
             return this
         if self.tipo == "MANY":
-            this = Models(tableName=self.name, dbName=self.parent.dbName)
+            this = Models(tableName=self.name, dbName=self.parent.dbName,
+                        path=self.parent.path)
             query = ""
             if "query" in condition:
                 query = condition.get("query")
@@ -51,8 +57,10 @@ class RelationShip(object):
             condition["query"] = query
             return this.getAll(condition)
         if self.tipo  == "MANYTOMANY":
-            this = Models(tableName=self.name, dbName=self.parent.dbName)
-            query = "{0}={1}".format(self.parent.relationName+".ID"+self.parent.tableName, self.parent.ID)
+            this = Models(tableName=self.name, dbName=self.parent.dbName,
+                            path=self.parent.path)
+            query = "{0}={1}".format(self.parent.relationName+".ID"+
+                                     self.parent.tableName, self.parent.ID)
             condition["columns"] = [self.name+".*"]
             condition["joins"] = [
                 {
