@@ -8,10 +8,11 @@
 """
 class RelationShip(object):
 
-    def __init__(self, tipo, name, parent=None):
+    def __init__(self, tipo, name, fieldName, parent=None):
         self.tipo = tipo
         self.name = name
         self.parent = parent
+        self.fieldName = fieldName
 
     def remove(self, child):
         from models import Models
@@ -20,8 +21,8 @@ class RelationShip(object):
         if self.tipo == "MANYTOMANY":
             reg = Models(tableName=self.parent.relationName, dbName=self.parent.dbName,
                         path=self.parent.path)
-            query = "{0}={1}".format("ID"+self.parent.tableName, self.parent.ID)
-            query += " AND {0}={1}".format("ID"+child.tableName, child.ID)
+            query = "{0}={1}".format("ID"+self.parent, self.parent.ID)
+            query += " AND {0}={1}".format("ID"+self.fieldName, child.ID)
             reg.loadByQuery(condition={"query":query})
             reg.remove()
 
@@ -34,7 +35,7 @@ class RelationShip(object):
             reg = Models(tableName=self.parent.relationName,
                     dbName=self.parent.dbName, path=self.parent.path)
             setattr(reg, "ID"+self.parent.tableName, self.parent.ID)
-            setattr(reg, "ID"+child.tableName, child.ID)
+            setattr(reg, "ID"+self.fieldName, child.ID)
             reg.save()
 
     def get(self, condition={}):
@@ -61,11 +62,11 @@ class RelationShip(object):
                             path=self.parent.path)
             query = "{0}={1}".format(self.parent.relationName+".ID"+
                                      self.parent.tableName, self.parent.ID)
-            condition["columns"] = [self.name+".*"]
+            condition["columns"] = [self.name+".*"] if not 'columns' in condition else condition["columns"]
             condition["joins"] = [
                 {
                   'tableName': self.parent.relationName,
-                  'join': self.parent.relationName+".ID"+self.name+"="+self.name+".ID"
+                  'join': self.parent.relationName+".ID"+self.fieldName+"="+self.name+".ID"
                 }
             ]
             if "query" in condition:

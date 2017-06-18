@@ -24,6 +24,7 @@ class Models(object):
         self.tableName = tableName
         self.dbName = dbName
         self.model = model
+        self.columns = "*"
         self.__crea_tb_models__()
         if self.model:
             self.__init_model__()
@@ -66,7 +67,7 @@ class Models(object):
                 if "relationTipo" in m  and "relationName" in  m:
                     fieldName = m.get("fieldName") if 'fieldName' in m else m.get("relationName")
                     setattr(self, fieldName,
-                            RelationShip(tipo=m.get("relationTipo"),
+                            RelationShip(tipo=m.get("relationTipo"), fieldName=fieldName,
                             name=m.get("relationName"), parent=self))
                     if m.get("relationTipo") == "ONE":
                         colRelation = "ID"+m.get('relationName')
@@ -211,8 +212,8 @@ class Models(object):
                 self.model["relationship"].append(m)
                 fieldName = m.get("fieldName") if 'fieldName' in m else m.get("relationName")
                 setattr(self, fieldName,
-                        RelationShip(tipo=m.get("relationTipo"),
-                        name=m.get("relationName"), parent=self))
+                        RelationShip(tipo=m.get("relationTipo"), fieldName=fieldName,
+                            name=m.get("relationName"), parent=self))
                 if m.get("relationTipo") == "ONE":
                     colRelation = "ID"+m.get('relationName')
                     name = m.get('relationName')
@@ -224,6 +225,7 @@ class Models(object):
                 elif m.get("relationTipo") == "MANYTOMANY":
                     self.__crear_tb_nexo__(m.get("relationName"), fieldName)
 
+                self.__save_model__(base64.b64encode(json.dumps(self.model)))
 
     def save(self):
         self.ID = -1 if self.ID == None else self.ID
@@ -280,10 +282,10 @@ class Models(object):
         query = "" if not 'query' in condition else "WHERE %s" % unicode(condition.get("query"))
         limit = "" if not 'limit' in condition else "LIMIT %s" % condition.get("limit")
         offset = "" if not 'offset' in condition else "OFFSET %s" % condition.get('offset')
-        columns = "*" if not 'columns' in condition else ", ".join(condition.get("columns"))
+        self.columns = "*" if not 'columns' in condition else ", ".join(condition.get("columns"))
         joins = "" if not 'joins' in condition else self.__getenerateJoins__(condition.get("joins"))
         group = "" if not 'group' in condition else "GROUP BY %s" % condition.get("group")
-        sql = "SELECT {0} FROM {1} {2} {3} {4} {5} {6};".format(columns, self.tableName,
+        sql = "SELECT {0} FROM {1} {2} {3} {4} {5} {6};".format(self.columns, self.tableName,
                                                          joins, order, query, limit, offset)
         return self.select(sql)
 
@@ -299,7 +301,7 @@ class Models(object):
 
         for r in reg:
             res = dict({k[0]: v for k, v in list(zip(d, r))})
-            obj = Models(tableName=self.tableName, dbName=self.dbName)
+            obj = Models(path=self.path, tableName=self.tableName, dbName=self.dbName)
             obj.__cargarDatos__(res)
 
             registros.append(obj)
@@ -331,23 +333,23 @@ class Models(object):
 
 
     def toJSON(self):
-        js = {"ID": self.ID}
-        for key in self.lstCampos:
-            v =  getattr(self, key)
-            if not (v is "None" or v is None ):
-                js[key] = getattr(self, key)
-
+        js = self.toDICT()
         return json.dumps(js, ensure_ascii=False)
 
     def toDICT(self):
-        js = {"ID": self.ID}
+        if self.ID > 0:
+            js = {"ID": self.ID}
+        else:
+            js = {}
         for key in self.lstCampos:
-            js[key] = getattr(self, key)
+            v =  getattr(self, key)
+            if self.columns == "*":
+                if not (v == "None" or v is None):
+                    js[key] = v
+            elif key in self.columns and not (v == "None" or v is None):
+                js[key] = v
 
         return js
-
-
-
 
     @staticmethod
     def serialize(registros):

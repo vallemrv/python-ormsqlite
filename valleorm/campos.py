@@ -27,7 +27,7 @@ class Campo(object):
 
 
     def pack(self, dato):
-        if self.tipo == "TEXT":
+        if self.tipo == "TEXT" or dato is None:
             return u'\"{0}\"'.format(unicode(dato))
         else:
             return dato
