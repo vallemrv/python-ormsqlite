@@ -50,7 +50,7 @@ class Models(object):
 
     #Introspection of  the models
     def __init_model__(self):
-        if len(self.model['fields']) > 0:
+        if len(self.model['fields']) > 0 or len(self.model['relationship']) > 0:
             self.__save_model__(base64.b64encode(json.dumps(self.model)))
         if "fields" in self.model:
             for m in self.model.get("fields"):
@@ -202,6 +202,13 @@ class Models(object):
                 setattr(self, k, v)
                 self.lstCampos.append(k)
 
+    def appnedField(self, field):
+        self.model["fields"].append(field)
+        self.__save_model__(base64.b64encode(json.dumps(self.model)))
+        setattr(self, "_"+field.get('fieldName'),
+                Campo(default=field.get("fieldDato"), tipo=field.get("fieldTipo")))
+        setattr(self, field.get('fieldName'), field.get("fieldDato"))
+        self.lstCampos.append(field.get("fieldName"))
 
     def appendRelations(self, relations):
         relationship = self.model["relationship"]

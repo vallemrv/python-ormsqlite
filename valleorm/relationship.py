@@ -21,14 +21,14 @@ class RelationShip(object):
         if self.tipo == "MANYTOMANY":
             reg = Models(tableName=self.parent.relationName, dbName=self.parent.dbName,
                         path=self.parent.path)
-            query = "{0}={1}".format("ID"+self.parent, self.parent.ID)
+            query = "{0}={1}".format("ID"+self.parent.tableName, self.parent.ID)
             query += " AND {0}={1}".format("ID"+self.fieldName, child.ID)
             reg.loadByQuery(condition={"query":query})
             reg.remove()
 
     def add(self, child):
         if self.tipo == "MANY":
-            setattr(child, "ID"+self.name, self.parent.ID)
+            setattr(child, "ID"+self.parent.tableName, self.parent.ID)
             child.save()
         elif self.tipo == "MANYTOMANY":
             from models import Models
