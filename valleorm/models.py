@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-"""python-ormsqlite Orm simple, potente y versatil
 
-    Autor: Manuel Rodriguez
-    Licencia: Apache v2.0
+# @Author: Manuel Rodriguez <valle>
+# @Date:   20-Jul-2017
+# @Email:  valle.mrv@gmail.com
+# @Filename: models.py
+# @Last modified by:   valle
+# @Last modified time: 23-Jul-2017
+# @License: Apache license vesion 2.0
 
-"""
 
 import sqlite3
 import json

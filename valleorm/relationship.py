@@ -1,3 +1,12 @@
+# @Author: Manuel Rodriguez <valle>
+# @Date:   20-Jul-2017
+# @Email:  valle.mrv@gmail.com
+# @Filename: relationship.py
+# @Last modified by:   valle
+# @Last modified time: 12-Aug-2017
+# @License: Apache license vesion 2.0
+
+
 # -*- coding: utf-8 -*-
 
 """python-ormsqlite Orm simple, potente y versatil
@@ -34,9 +43,12 @@ class RelationShip(object):
             from models import Models
             reg = Models(tableName=self.parent.relationName,
                     dbName=self.parent.dbName, path=self.parent.path)
-            setattr(reg, "ID"+self.parent.tableName, self.parent.ID)
-            setattr(reg, "ID"+self.fieldName, child.ID)
-            reg.save()
+            query = "ID"+self.parent.tableName+'='+str(self.parent.ID)+" AND ID"+self.fieldName+'='+str(child.ID)
+            regs = reg.getAll({'query':query})
+            if len(regs) == 0:
+                setattr(reg, "ID"+self.parent.tableName, self.parent.ID)
+                setattr(reg, "ID"+self.fieldName, child.ID)
+                reg.save()
 
     def get(self, condition={}):
         from models import Models
