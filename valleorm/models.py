@@ -5,7 +5,7 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: models.py
 # @Last modified by:   valle
-# @Last modified time: 23-Jul-2017
+# @Last modified time: 18-Aug-2017
 # @License: Apache license vesion 2.0
 
 
@@ -295,8 +295,8 @@ class Models(object):
         self.columns = "*" if not 'columns' in condition else ", ".join(condition.get("columns"))
         joins = "" if not 'joins' in condition else self.__getenerateJoins__(condition.get("joins"))
         group = "" if not 'group' in condition else "GROUP BY %s" % condition.get("group")
-        sql = "SELECT {0} FROM {1} {2} {3} {4} {5} {6};".format(self.columns, self.tableName,
-                                                         joins, order, query, limit, offset)
+        sql = "SELECT {0} FROM {1} {2} {3} {4} {5} {6} {7};".format(self.columns, self.tableName,
+                                                         joins, query, order, group, limit, offset)
         return self.select(sql)
 
     def select(self, sql):
@@ -362,6 +362,23 @@ class Models(object):
         return js
 
     @staticmethod
+    def toArrayDict(registros):
+        lista = []
+        for r in registros:
+            reg = r.toDICT()
+            lista.append(reg)
+
+        return lista
+
+    @staticmethod
+    def removeRows(registros):
+        lista = []
+        for r in registros:
+            lista.append({'ID': r.ID, 'success': True})
+            r.remove()
+        return lista
+
+    @staticmethod
     def serialize(registros):
         lista = []
         for r in registros:
@@ -372,6 +389,8 @@ class Models(object):
             lista.append(reg)
 
         return json.dumps(lista)
+
+
 
     @staticmethod
     def deSerialize(dbJSON):
@@ -421,8 +440,29 @@ class Models(object):
             return json.loads(base64.b64decode(reg[0]))
 
     @staticmethod
+    def alter_model(dbName, tableName, model, path='./'):
+        strModel = base64.b64encode(json.dumps(model))
+        sql = "INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
+        sql = sql.format(tableName, strModel)
+        db = sqlite3.connect(path+dbName)
+        cursor= db.cursor()
+        cursor.execute(sql)
+        db.commit()
+        db.close()
+
+    @staticmethod
+    def alter_constraint(dbName, tableName, columName, parent, path='./'):
+        sql = "ALTER TABLE {0} ADD COLUMN {1} INTEGER REFERENCES {2}(ID) ON DELETE CASCADE;"
+        sql = sql.format(tableName, columName, parent)
+        db = sqlite3.connect(path+dbName)
+        cursor= db.cursor()
+        cursor.execute(sql)
+        db.commit()
+        db.close()
+
+    @staticmethod
     def alter(dbName, tableName, field, path='./'):
-        sql = "ALTER TABLE {0} ADD COLUMN {1} {2} DEFAULT {3}"
+        sql = "ALTER TABLE {0} ADD COLUMN {1} {2} DEFAULT {3};"
         sql = sql.format(tableName, field["fieldName"], field["fieldTipo"], field["fieldDato"])
         db = sqlite3.connect(path+dbName)
         cursor= db.cursor()

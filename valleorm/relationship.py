@@ -1,20 +1,13 @@
+# -*- coding: utf-8 -*-
+
 # @Author: Manuel Rodriguez <valle>
 # @Date:   20-Jul-2017
 # @Email:  valle.mrv@gmail.com
 # @Filename: relationship.py
 # @Last modified by:   valle
-# @Last modified time: 12-Aug-2017
+# @Last modified time: 18-Aug-2017
 # @License: Apache license vesion 2.0
 
-
-# -*- coding: utf-8 -*-
-
-"""python-ormsqlite Orm simple, potente y versatil
-
-    Autor: Manuel Rodriguez
-    Licencia: Apache v2.0
-
-"""
 class RelationShip(object):
 
     def __init__(self, tipo, name, fieldName, parent=None):
@@ -37,6 +30,16 @@ class RelationShip(object):
 
     def add(self, child):
         if self.tipo == "MANY":
+            if not hasattr(child, "ID"+self.parent.tableName):
+                from models import Models
+                child.appendRelations([{
+                    'fieldName': self.parent.tableName,
+                    'relationName': self.parent.tableName,
+                    'relationTipo': 'ONE',
+                }])
+                Models.alter_constraint(self.parent.dbName, child.tableName,
+                                        "ID"+self.parent.tableName,
+                                        self.parent.tableName, self.parent.path)
             setattr(child, "ID"+self.parent.tableName, self.parent.ID)
             child.save()
         elif self.tipo == "MANYTOMANY":
@@ -45,6 +48,7 @@ class RelationShip(object):
                     dbName=self.parent.dbName, path=self.parent.path)
             query = "ID"+self.parent.tableName+'='+str(self.parent.ID)+" AND ID"+self.fieldName+'='+str(child.ID)
             regs = reg.getAll({'query':query})
+            if child.ID == -1: child.save()
             if len(regs) == 0:
                 setattr(reg, "ID"+self.parent.tableName, self.parent.ID)
                 setattr(reg, "ID"+self.fieldName, child.ID)
