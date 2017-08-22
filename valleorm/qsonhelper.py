@@ -3,7 +3,7 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: controllers.py
 # @Last modified by:   valle
-# @Last modified time: 19-Aug-2017
+# @Last modified time: 20-Aug-2017
 # @License: Apache license vesion 2.0
 
 import os
@@ -18,16 +18,19 @@ class HelperBase(object):
         self.JSONQuery = JSONQuery
         self.path = path
         self.db = JSONQuery.get("db") if 'db' in JSONQuery.get("db") else JSONQuery.get("db")+".db"
-        for k, v in JSONQuery.items():
-            if k == "db":
+        for tb, val in JSONQuery.items():
+            if tb == "db":
                 pass
-            elif type(v) is list:
-                rows = v
+            elif type(val) is list:
+                rows = val
                 for row in rows:
-                    for kr, vr in row.items():
-                        self.action(vr, kr)
+                    keys = row.keys()
+                    if len(keys) == 1:
+                        self.action(row, keys[0])
+                    else:
+                        self.action(row, tb)
             else:
-                self.action(v, k)
+                self.action(val, tb)
 
     def decode_qson(self, qson, tb):
         query = []
@@ -64,7 +67,8 @@ class HelperBase(object):
 class AddHelper(HelperBase):
 
     def action(self, qson, tb):
-        self.JSONResult["add"] = {tb: []}
+        if not 'add' in self.JSONResult:
+            self.JSONResult["add"] = {tb:[]}
         decoder = self.decode_qson(qson, tb)
         row = self.modify_row(decoder)
         if row:
@@ -206,7 +210,8 @@ class AddHelper(HelperBase):
 
 class GetHelper(HelperBase):
     def action(self, qson, tb):
-        self.JSONResult['get'] = {tb: []}
+        if not 'get' in self.JSONResult:
+            self.JSONResult["get"] = {tb:[]}
         if not Models.exitsTable(self.db, tb, self.path):
             return ''
         decoder = self.decode_qson(qson, tb)
@@ -221,7 +226,8 @@ class GetHelper(HelperBase):
 
 class RmHelper(HelperBase):
     def action(self, qson, tb):
-        self.JSONResult['rm'] = {tb: []}
+        if not 'rm' in self.JSONResult:
+            self.JSONResult["rm"] = {tb:[]}
         hasChild = False
         if not Models.exitsTable(self.db, tb, self.path):
             return ''
@@ -242,27 +248,31 @@ class RmHelper(HelperBase):
             self.JSONResult['get'][tb].append(row_send)
 
 class QSonHelper(object):
-    def __init__(self, qson, result, path='./'):
-        self.JSONResponse = {}
+    def __init__(self, path='./'):
+        self.JSONResult = {}
+        self.path = path
+
+    def decode_qson(self, qson):
         for name in qson.keys():
             if "add" == name:
                 QSONRequire = qson.get("add")
                 if not "db" in QSONRequire:
                     raise Exception('db', "No se sabe el nombre de la db. Indique una con la Key='db'")
-
-                AddHelper(JSONRequire=QSONRequire,
-                              JSONResponse=self.JSONResponse, path=path)
+                AddHelper(JSONQuery=QSONRequire,
+                          JSONResult=self.JSONResult, path=self.path)
 
             if "get" == name:
                 QSONRequire = qson.get("get")
                 if not "db" in QSONRequire:
                     raise Exception('db', "No se sabe el nombre de la db. Indique una con la Key='db'")
-                GetController(JSONRequire=QSONRequire,
-                              JSONResponse=self.JSONResponse, path=path)
+                GetHelper(JSONQuery=QSONRequire,
+                              JSONResult=self.JSONResult, path=self.path)
 
             if "rm" == name:
                 QSONRequire = qson.get("rm")
                 if not "db" in QSONRequire:
                     raise Exception('db', "No se sabe el nombre de la db. Indique una con la Key='db'")
-                RmController(JSONRequire=QSONRequire,
-                             JSONResponse=self.JSONResponse, path=path)
+                RmHelper(JSONQuery=QSONRequire,
+                             JSONResult=self.JSONResult, path=self.path)
+
+        return self.JSONResult

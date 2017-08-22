@@ -5,95 +5,61 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: ejemplo_helper.py
 # @Last modified by:   valle
-# @Last modified time: 19-Aug-2017
+# @Last modified time: 20-Aug-2017
 # @License: Apache license vesion 2.0
 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import names
 
-from valleorm.qsonhelper  import AddHelper, GetHelper
+from valleorm.qsonhelper  import  QSonHelper
 
 QSon1 = {
-    'db': 'test_qson',
-    'user': {
-         'name': 'manolo',
-         'apellido': 'rodriguez'
+    'add':{
+        'db': 'test_qson',
+        'user': [{
+             'name': 'manolo',
+             'apellido': 'rodriguez'
+             },
+             {
+            'ID': 1,
+            'direccion':{
+                'calle': 'Avd. Francisco Aylala',
+                'numero': 85
+            }
+         }]
         }
      }
 
 QSon2 = {
-    'db': 'test_qson',
-    'user': {
-         'ID': 1,
-         'hijo':[
-             {'user':{
-                 'name': "Manolo",
-                 'apellido': "Ubrique",
-                 'apodo': 'lolo'
-             }}
-         ]
+    'get':{
+        'db': 'test_qson',
+        'user':{
+            'direccion':{}
+         }
         }
      }
 
 
 QSon3 = {
+    'add':{
     'db': 'test_qson',
-    'user': {
-        'ID': 1,
-        'direccion':{
-            'calle': 'Avd. Francisco Aylala',
-            'numreo': 85
-        }
-     }
+    'user':{
+            'name': names.get_first_name(),
+            'apellido': names.get_last_name()
+        }}
 }
+
+
 
 QSon4 = {
     'db': 'test_qson',
-    'direccion':{
-            'ID': 1,
-            'localidad': 'Granada'
-        }
-}
-
-
-QSon5 = {
-    'db': 'test_qson',
-    'user': {
-         'name': 'Pepe luis',
-        }
-     }
-
-QSearch = {
-    'db': 'test_qson',
     'user': {
     }
 }
 
-QSearch1 = {
-    'db': 'test_qson',
-    'user': {
-        'ID': 2,
-    }
-}
-QSearch2 = {
-    'db': 'test_qson',
-    'user':{
-    'direccion': {}
-    }
-}
 
 
-
-def execute_add(QSon):
-    Resutl = {}
-    AddHelper(JSONQuery=QSon, JSONResult=Resutl)
-    print Resutl
-
-def execute_get(QSon):
-    Resutl = {}
-    GetHelper(JSONQuery=QSon, JSONResult=Resutl)
-    print Resutl
-
-
-execute_get(QSearch2)
+qsonheler = QSonHelper()
+print qsonheler.decode_qson(QSon2)
