@@ -4,8 +4,8 @@
 # @Date:   20-Jul-2017
 # @Email:  valle.mrv@gmail.com
 # @Filename: relationship.py
-# @Last modified by:   valle
-# @Last modified time: 18-Aug-2017
+# @Last modified by:   vallemrv
+# @Last modified time: 30-Aug-2017
 # @License: Apache license vesion 2.0
 
 class RelationShip(object):
@@ -60,7 +60,7 @@ class RelationShip(object):
             this = Models(tableName=self.name, dbName=self.parent.dbName,
                 path=self.parent.path)
             idParent = getattr(self.parent, "ID"+sel.name)
-            this.getPk(idParent)
+            this.loadByPk(idParent)
             return this
         if self.tipo == "MANY":
             this = Models(tableName=self.name, dbName=self.parent.dbName,

@@ -5,7 +5,7 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: models.py
 # @Last modified by:   valle
-# @Last modified time: 18-Aug-2017
+# @Last modified time: 22-Aug-2017
 # @License: Apache license vesion 2.0
 
 
@@ -46,7 +46,7 @@ class Models(object):
         self.execute(sql)
 
     def __save_model__(self, strModel):
-        sql = "INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
+        sql = u"INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
         sql = sql.format(self.tableName, strModel)
         self.execute(sql)
 
@@ -78,7 +78,7 @@ class Models(object):
                         setattr(self, "_"+colRelation, Campo(default= 1, tipo="INTEGER"))
                         setattr(self, colRelation, 1)
                         self.lstCampos.append(colRelation)
-                        sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
+                        sql = u"FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
                         self.foreingKeys.append(sql.format(colRelation, name))
                     elif m.get("relationTipo") == "MANYTOMANY":
                         self.__crear_tb_nexo__(m.get("relationName"), fieldName)
@@ -91,8 +91,8 @@ class Models(object):
     def __find_db_nexo__(self, tb1, tb2):
         db = sqlite3.connect(self.path+self.dbName)
         cursor= db.cursor()
-        condition = " AND (name='{0}' OR name='{1}')".format(tb1+"_"+tb2, tb2+"_"+tb1)
-        sql = "SELECT name FROM sqlite_master WHERE type='table' %s;" % condition
+        condition = u" AND (name='{0}' OR name='{1}')".format(tb1+"_"+tb2, tb2+"_"+tb1)
+        sql = u"SELECT name FROM sqlite_master WHERE type='table' %s;" % condition
         cursor.execute(sql)
         reg = cursor.fetchone()
         db.commit()
@@ -133,9 +133,9 @@ class Models(object):
             idnexo2 = "ID"+fieldName
 
             IDprimary = "ID INTEGER PRIMARY KEY AUTOINCREMENT"
-            frgKey = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE, ".format(idnexo1, self.tableName)
-            frgKey += "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE".format(idnexo2, relationName)
-            sql = "CREATE TABLE IF NOT EXISTS {0} ({1}, {2} ,{3}, {4});".format(nexoName,
+            frgKey = u"FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE, ".format(idnexo1, self.tableName)
+            frgKey += u"FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE".format(idnexo2, relationName)
+            sql = u"CREATE TABLE IF NOT EXISTS {0} ({1}, {2} ,{3}, {4});".format(nexoName,
                                                                 IDprimary, idnexo1+" INTEGER ",
                                                                 idnexo2+" INTEGER ", frgKey)
             self.execute(sql)
@@ -153,7 +153,7 @@ class Models(object):
                 ]}
 
 
-            sql = "INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
+            sql = u"INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
             sql = sql.format(nexoName, base64.b64encode(json.dumps(nexoModel)))
             self.execute(sql)
 
@@ -162,12 +162,12 @@ class Models(object):
     def __crearDb__(self):
         fields = ["ID INTEGER PRIMARY KEY AUTOINCREMENT"]
         for key in self.lstCampos:
-            fields.append("{0} {1}".format(key, getattr(self, "_"+key).toQuery()))
-        frgKey = "" if len(self.foreingKeys)==0 else ", {0}".format(", ".join(self.foreingKeys))
+            fields.append(u"{0} {1}".format(key, getattr(self, "_"+key).toQuery()))
+        frgKey = "" if len(self.foreingKeys)==0 else u", {0}".format(", ".join(self.foreingKeys))
 
 
         values = ", ".join(fields)
-        sql = "CREATE TABLE IF NOT EXISTS {1} ({0}{2});".format(values,
+        sql = u"CREATE TABLE IF NOT EXISTS {1} ({0}{2});".format(values,
                                                             self.tableName,
                                                             frgKey)
         self.execute(sql)
@@ -178,7 +178,7 @@ class Models(object):
             typeJoin = "INNER JOIN " if not "typeJoin" in j else j.get("typeJoin")
             if not "tableName" in j or not "join" in j: raise Exception("joins",
             "La clausulas joins no cumplen con las especificaciones. Consulte el manual")
-            sql = "{0} {1} ON {2}".format(typeJoin, j.get("tableName"),  j.get("join"))
+            sql = u"{0} {1} ON {2}".format(typeJoin, j.get("tableName"),  j.get("join"))
             strJoins.append(sql)
 
         return "" if len(strJoins) <=0 else ", ".join(strJoins)
@@ -230,7 +230,7 @@ class Models(object):
                     setattr(self, "_"+colRelation, Campo(default= 1, tipo="INTEGER"))
                     setattr(self, colRelation, 1)
                     self.lstCampos.append(colRelation)
-                    sql = "FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
+                    sql = u"FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
                     self.foreingKeys.append(sql.format(colRelation, name))
                 elif m.get("relationTipo") == "MANYTOMANY":
                     self.__crear_tb_nexo__(m.get("relationName"), fieldName)
@@ -257,7 +257,7 @@ class Models(object):
                 _val = getattr(self, "_"+key)
                 val = getattr(self, key)
 
-                vals.append("{0} = {1}".format(key, _val.pack(val)))
+                vals.append(u"{0} = {1}".format(key, unicode(_val.pack(val))))
             values = ", ".join(vals)
             sql = u"UPDATE {0}  SET {1} WHERE ID={2};".format(self.tableName,
                                                              values, self.ID);
@@ -271,7 +271,7 @@ class Models(object):
 
     def remove(self):
         self.ID = -1 if self.ID == None else self.ID
-        sql = "DELETE FROM {0} WHERE ID={1};".format(self.tableName,
+        sql = u"DELETE FROM {0} WHERE ID={1};".format(self.tableName,
                                                      self.ID)
         self.execute(sql)
         self.ID = -1
@@ -295,7 +295,7 @@ class Models(object):
         self.columns = "*" if not 'columns' in condition else ", ".join(condition.get("columns"))
         joins = "" if not 'joins' in condition else self.__getenerateJoins__(condition.get("joins"))
         group = "" if not 'group' in condition else "GROUP BY %s" % condition.get("group")
-        sql = "SELECT {0} FROM {1} {2} {3} {4} {5} {6} {7};".format(self.columns, self.tableName,
+        sql = u"SELECT {0} FROM {1} {2} {3} {4} {5} {6} {7};".format(self.columns, self.tableName,
                                                          joins, query, order, group, limit, offset)
         return self.select(sql)
 
@@ -329,7 +329,7 @@ class Models(object):
             db.close()
 
     def loadByPk(self, idr):
-        sql = "SELECT * FROM {0} WHERE ID={1};".format(self.tableName, idr)
+        sql = u"SELECT * FROM {0} WHERE ID={1};".format(self.tableName, idr)
         db = sqlite3.connect(self.path+self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
@@ -442,7 +442,7 @@ class Models(object):
     @staticmethod
     def alter_model(dbName, tableName, model, path='./'):
         strModel = base64.b64encode(json.dumps(model))
-        sql = "INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
+        sql = u"INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
         sql = sql.format(tableName, strModel)
         db = sqlite3.connect(path+dbName)
         cursor= db.cursor()
@@ -452,7 +452,7 @@ class Models(object):
 
     @staticmethod
     def alter_constraint(dbName, tableName, columName, parent, path='./'):
-        sql = "ALTER TABLE {0} ADD COLUMN {1} INTEGER REFERENCES {2}(ID) ON DELETE CASCADE;"
+        sql = u"ALTER TABLE {0} ADD COLUMN {1} INTEGER REFERENCES {2}(ID) ON DELETE CASCADE;"
         sql = sql.format(tableName, columName, parent)
         db = sqlite3.connect(path+dbName)
         cursor= db.cursor()
@@ -462,7 +462,7 @@ class Models(object):
 
     @staticmethod
     def alter(dbName, tableName, field, path='./'):
-        sql = "ALTER TABLE {0} ADD COLUMN {1} {2} DEFAULT {3};"
+        sql = u"ALTER TABLE {0} ADD COLUMN {1} {2} DEFAULT {3};"
         sql = sql.format(tableName, field["fieldName"], field["fieldTipo"], field["fieldDato"])
         db = sqlite3.connect(path+dbName)
         cursor= db.cursor()

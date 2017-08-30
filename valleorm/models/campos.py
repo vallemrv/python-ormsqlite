@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+# @Author: Manuel Rodriguez <valle>
+# @Date:   20-Jul-2017
+# @Email:  valle.mrv@gmail.com
+# @Filename: campos.py
+# @Last modified by:   valle
+# @Last modified time: 29-Aug-2017
+# @License: Apache license vesion 2.0
 
-"""python-ormsqlite Orm simple, potente y versatil
 
-    Autor: Manuel Rodriguez
-    Licencia: Apache v2.0
-
-"""
 class Campo(object):
     def __init__(self, default=None, tipo="TEXT", dato=None):
         self.dato = dato

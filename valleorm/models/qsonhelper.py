@@ -2,15 +2,10 @@
 # @Date:   16-Aug-2017
 # @Email:  valle.mrv@gmail.com
 # @Filename: controllers.py
-# @Last modified by:   valle
-# @Last modified time: 20-Aug-2017
+# @Last modified by:   vallemrv
+# @Last modified time: 29-Aug-2017
 # @License: Apache license vesion 2.0
 
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from valleorm.models import Models
 
 class HelperBase(object):
     def __init__(self, JSONQuery, JSONResult, path='./'):
