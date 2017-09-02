@@ -4,13 +4,17 @@
 # @Date:   29-Aug-2017
 # @Email:  valle.mrv@gmail.com
 # @Filename: field.py
-# @Last modified by:   vallemrv
-# @Last modified time: 30-Aug-2017
+# @Last modified by:   valle
+# @Last modified time: 02-Sep-2017
 # @License: Apache license vesion 2.0
 
 import importlib
 import uuid
+from exceptions import ValueError
 from valleorm.django.models.constant import constant
+from decimal import *
+from datetime import date, datetime
+
 
 
 class Field(object):
@@ -24,15 +28,15 @@ class Field(object):
         self.dato = self.default
 
     def get_pack_dato(self):
-        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or dato is None:
-            return u'\"{0}\"'.format(unicode(self.dato))
+        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or self.dato is None:
+            return u'"{0}"'.format(unicode(self.get_dato()))
         else:
-            return self.dato
+            return str(self.get_dato())
 
-    def toQuery(self):
-        pass
 
     def get_dato(self):
+        if not self.null and not self.dato:
+            raise ValueError("Error el valor no puede ser nulo")
         return self.dato
 
     def set_dato(self, value):
@@ -42,6 +46,13 @@ class Field(object):
         self.field_name = field_name
         stado = self.__dict__
         return stado
+
+    def toQuery(self):
+        strnull = 'NOT NULL' if not self.null else 'NULL'
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
+        return u"{2} {0} {1}".format(strnull, strdefault, self.tipo)
+
+
 
 class CharField(Field):
     def __init__(self, max_length, **options):
@@ -53,13 +64,19 @@ class CharField(Field):
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
         return "VARCHAR({0}) {1} {2}".format(self.max_length, strnull, strdefault)
 
 class EmailField(CharField):
     def __init__(self, max_length=254, **options):
         super(EmailField, self).__init__(max_length, **options)
         self.class_name = 'EmailField'
+
+    def set_dato(self, value):
+        if not ("@" in value and "." in value):
+            raise ValueError('Formato email no valido')
+        self.dato = value
+
 
 class DecimalField(Field):
     def __init__(self, max_digits, decimal_places, **options):
@@ -68,27 +85,40 @@ class DecimalField(Field):
         self.decimal_places=decimal_places
         self.class_name = "DecimalField"
 
+    def get_dato(self):
+        dato = super(DecimalField, self).get_dato()
+        format = "%0.{0}f".format(self.decimal_places)
+        dato = format % dato
+        return float(dato)
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
-        return "DECIMAL({0},{1}) {2} {3}".format(self.max_digits, self.decimal_places,
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
+        return u"DECIMAL({0},{1}) {2} {3}".format(self.max_digits, self.decimal_places,
                                                  strnull, strdefault)
 
 class DateField(Field):
-    def __init__(self, auto_now=False, auto_now_add=False, **options):
+    def __init__(self, auto_now=False, auto_now_add=True, **options):
         super(DateField, self).__init__(**options)
         self.tipo="DATE"
         self.class_name = "DateField"
         self.auto_now=auto_now
-        self.auto_now_add=auto_now_add,
+        self.auto_now_add=auto_now_add
 
 
+    def get_dato(self):
+        return self.dato
 
-    def toQuery(self):
-        strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
-        return "DATE {0} {1}".format(strnull, strdefault)
+    def get_pack_dato(self):
+        if self.auto_now:
+            self.dato = date.today()
+        elif self.auto_now_add and not self.dato:
+            self.dato = date.today()
+        elif self.null == False and not self.dato:
+            raise ValueError("El dato no puede ser null")
+
+        return u'"{0}"'.format(unicode(self.dato))
+
 
 class DateTimeField(Field):
     def __init__(self, auto_now=False, auto_now_add=False, **options):
@@ -98,13 +128,19 @@ class DateTimeField(Field):
         self.auto_now=auto_now
         self.auto_now_add=auto_now_add
 
-    def set_dato(self, value):
-        self.dato = value
+    def get_dato(self):
+        return self.dato
 
-    def toQuery(self):
-        strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
-        return "DATETIME {0} {1}".format(strnull, strdefault)
+
+    def get_pack_dato(self):
+        if self.auto_now:
+            self.dato = datetime.now()
+        elif self.auto_now_add and not self.dato:
+            self.dato = datetime.now()
+        elif self.null == False and not self.dato:
+            raise ValueError("El dato no puede ser null")
+        return u'"{0}"'.format(unicode(self.dato))
+
 
 class BooleanField(Field):
     def __init__(self, **options):
@@ -112,10 +148,8 @@ class BooleanField(Field):
         self.tipo="BOOL"
         self.class_name = "BooleanField"
 
-    def toQuery(self):
-        strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
-        return "BOOL {0} {1}".format(strnull, strdefault)
+    def set_dato(self, value):
+        self.dato = 1 if value else 0
 
 class IntegerField(Field):
     def __init__(self, **options):
@@ -123,21 +157,12 @@ class IntegerField(Field):
         self.tipo="INTEGER"
         self.class_name = "IntegerField"
 
-    def toQuery(self):
-        strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
-        return "INTEGER {0} {1}".format(strnull, strdefault)
-
 class FloatField(Field):
     def __init__(self, **options):
         super(FloatField, self).__init__(**options)
         self.tipo="REAL"
         self.class_name = "FloatField"
 
-    def toQuery(self):
-        strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
-        return "REAL {0} {1}".format(strnull, strdefault)
 
 class TextField(Field):
     def __init__(self, **options):
@@ -145,11 +170,6 @@ class TextField(Field):
         self.tipo="TEXT"
         self.class_name = "TextField"
 
-
-    def toQuery(self):
-        strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.pack(self.default)
-        return "TEXT {0} {1}".format(strnull, strdefault)
 
 class UUIDField(Field):
     def __init__(self, **options):
@@ -163,7 +183,6 @@ class UUIDField(Field):
 
     def toQuery(self):
         return "TEXT {0}".format('NOT NULL')
-
 
 
 def create_field_class(config):
