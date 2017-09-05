@@ -4,7 +4,7 @@
 # @Date:   29-Aug-2017
 # @Email:  valle.mrv@gmail.com
 # @Last modified by:   valle
-# @Last modified time: 02-Sep-2017
+# @Last modified time: 05-Sep-2017
 # @License: Apache license vesion 2.0
 
 import sqlite3
@@ -17,10 +17,9 @@ from valleorm.django.models.relatedfields import *
 
 class Model(object):
     def __init__(self, table_name=None, dbName="db.sqlite3",
-                 path='./', model=None, alter=False, **options):
+                 model=None, alter=False, **options):
         self.lstCampos = []
         self.columns = "*"
-        self.path = path
         self.foreingKeys = []
         self.ID = -1
         self.table_name = table_name
@@ -51,8 +50,8 @@ class Model(object):
                 setattr(self, k, v)
 
     def __setattr__(self, attr, value):
-        es_dato_simple = value and hasattr(self, 'lstCampos') and attr in self.lstCampos
-        es_dato_simple = es_dato_simple and not hasattr(value, "tipo_class")
+        es_dato_simple = type(value) in (str, int, bool, float, unicode)
+        es_dato_simple = es_dato_simple and hasattr(self, 'lstCampos') and attr in self.lstCampos
         if es_dato_simple:
             field = super(Model, self).__getattribute__(attr)
             field.set_dato(value)
@@ -91,7 +90,6 @@ class Model(object):
                 if "class_name" in m  and "field_name" in  m:
                     field_name = m.get("field_name")
                     rel_new = create_relation_class(m, self)
-                    rel_new.init(self)
                     setattr(self, field_name, rel_new)
                     if m.get("class_name") == "ForeignKey":
                         id_field_name = rel_new.id_field_name
@@ -99,6 +97,7 @@ class Model(object):
                         self.lstCampos.append(id_field_name)
                 else:
                     raise Exception("Error al contruir el modelo de datos, FATAL")
+
 
     #Introspection of the inherited class
     def __init_campos__(self):
@@ -113,7 +112,7 @@ class Model(object):
                 self.lstCampos.append(key)
             elif tipo_class == constant.TIPO_RELATION:
                 self.model["relationship"].append(field.get_serialize_data(key))
-                field.init(self)
+                field.main_model_class = self
                 if field.class_name == "ForeignKey":
                     id_field_name = field.id_field_name
                     setattr(self, id_field_name, IntegerField())
@@ -159,7 +158,7 @@ class Model(object):
 
     def __load_models__(self):
         sql = "SELECT model FROM django_models_db WHERE table_name='%s'" % self.table_name
-        db = sqlite3.connect(self.path+self.dbName)
+        db = sqlite3.connect(self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         reg = cursor.fetchone()
@@ -176,7 +175,6 @@ class Model(object):
                 setattr(self, k, v)
                 self.lstCampos.append(k)
 
-
     def appned_fields(self, fields, update=False,):
         if not self.model:
             self.model = {'fields':[],'relationship':[]}
@@ -191,7 +189,6 @@ class Model(object):
                 self.__save_schema__(base64.b64encode(json.dumps(self.model)))
                 if update:
                     Model.alter(self.dbName, self.table_name, field)
-
 
     def append_relation(self, rel_new):
         relationship = self.model["relationship"]
@@ -227,7 +224,7 @@ class Model(object):
             values = ", ".join(vals)
             sql = u"UPDATE {0}  SET {1} WHERE ID={2};".format(self.table_name,
                                                                  values, self.ID);
-        db = sqlite3.connect(self.path+self.dbName)
+        db = sqlite3.connect(self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         if self.ID == -1:
@@ -245,7 +242,6 @@ class Model(object):
         self.ID = -1;
         self.execute("DELETE FROM %s;" % self.table_name)
 
-
     def getAll(self, **condition):
         self.columns = "*" if not 'columns' in condition else ", ".join(condition.get("columns"))
         order = "" if not 'order' in condition else "ORDER BY %s" % unicode(condition.get('order'))
@@ -259,7 +255,7 @@ class Model(object):
         return self.select(sql)
 
     def select(self, sql):
-        db = sqlite3.connect(self.path+self.dbName)
+        db = sqlite3.connect(self.dbName)
         cursor= db.cursor()
 
         cursor.execute(sql)
@@ -271,7 +267,7 @@ class Model(object):
 
         for r in reg:
             res = dict({k[0]: v for k, v in list(zip(d, r))})
-            obj = Model(path=self.path, table_name=self.table_name, dbName=self.dbName)
+            obj = Model(table_name=self.table_name, dbName=self.dbName)
             obj.__cargar_datos__(**res)
 
             registros.append(obj)
@@ -280,7 +276,7 @@ class Model(object):
 
     def execute(self, query):
         if sqlite3.complete_statement(query):
-            db = sqlite3.connect(self.path+self.dbName)
+            db = sqlite3.connect(self.dbName)
             cursor= db.cursor()
             cursor.execute("PRAGMA foreign_keys = ON;")
             cursor.execute(query)
@@ -294,7 +290,7 @@ class Model(object):
 
     def load_by_pk(self, pk):
         sql = u"SELECT * FROM {0} WHERE ID={1};".format(self.table_name, pk)
-        db = sqlite3.connect(self.path+self.dbName)
+        db = sqlite3.connect(self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         reg = cursor.fetchone()
@@ -325,11 +321,11 @@ class Model(object):
         return js
 
     @classmethod
-    def get_model(cls, table_name=None, dbName='db.sqlite3', path='./'):
+    def get_model(cls, table_name=None, dbName='db.sqlite3'):
         if not table_name:
             table_name = cls.__name__.lower()
         sql = "SELECT model FROM django_models_db WHERE table_name='%s'" % table_name
-        db = sqlite3.connect(path+dbName)
+        db = sqlite3.connect(dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         reg = cursor.fetchone()
@@ -337,7 +333,6 @@ class Model(object):
         db.close()
         if reg:
             return json.loads(base64.b64decode(reg[0]))
-
 
     @staticmethod
     def to_array_dict(registros):
@@ -380,9 +375,9 @@ class Model(object):
         return registros
 
     @staticmethod
-    def drop_db(dbName, path='./'):
+    def drop_db(dbName):
         sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '%sqlite%';"
-        db = sqlite3.connect(path+dbName)
+        db = sqlite3.connect(dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         reg = cursor.fetchall()
@@ -392,10 +387,10 @@ class Model(object):
         db.close()
 
     @staticmethod
-    def exits_table(table_name, dbName='db.sqlite3', path='./'):
+    def exits_table(table_name, dbName='db.sqlite3'):
         sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='%s';"
         sql = sql % table_name
-        db = sqlite3.connect(path+dbName)
+        db = sqlite3.connect(dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         reg = cursor.fetchone()
@@ -403,33 +398,32 @@ class Model(object):
         db.close()
         return reg != None
 
-
     @staticmethod
-    def alter_model(table_name, model, dbName='db.sqlite3', path='./'):
+    def alter_model(table_name, model, dbName='db.sqlite3'):
         strModel = base64.b64encode(json.dumps(model))
         sql = u"INSERT OR REPLACE INTO django_models_db (table_name, model) VALUES ('{0}','{1}');"
         sql = sql.format(table_name, strModel)
-        db = sqlite3.connect(path+dbName)
+        db = sqlite3.connect(dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         db.commit()
         db.close()
 
     @staticmethod
-    def alter_constraint(table_name, colum_name, parent, dbName='db.sqlite3', path='./', delete=constant.CASCADE):
+    def alter_constraint(table_name, colum_name, parent, dbName='db.sqlite3', delete=constant.CASCADE):
         sql = u"ALTER TABLE {0} ADD COLUMN {1} INTEGER REFERENCES {2}(ID) {3};"
         sql = sql.format(table_name, colum_name, parent, delete)
-        db = sqlite3.connect(path+dbName)
+        db = sqlite3.connect(dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         db.commit()
         db.close()
 
     @staticmethod
-    def alter(field, dbName='db.sqlite3',  path='./'):
+    def alter(field, dbName='db.sqlite3'):
         sql = u"ALTER TABLE {0} ADD COLUMN {1} {2};"
         sql = sql.format(field.table_name, field.field_name, field.toQuery())
-        db = sqlite3.connect(path+dbName)
+        db = sqlite3.connect(dbName)
         cursor= db.cursor()
         cursor.execute(sql)
         db.commit()

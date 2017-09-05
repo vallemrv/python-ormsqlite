@@ -5,7 +5,7 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: field.py
 # @Last modified by:   valle
-# @Last modified time: 02-Sep-2017
+# @Last modified time: 03-Sep-2017
 # @License: Apache license vesion 2.0
 
 import importlib
@@ -33,9 +33,15 @@ class Field(object):
         else:
             return str(self.get_dato())
 
+    def get_pack_default(self):
+        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or self.dato is None:
+            return u'"{0}"'.format(unicode(self.default))
+        else:
+            return str(self.default)
+
 
     def get_dato(self):
-        if not self.null and not self.dato:
+        if self.null == False and self.dato == None:
             raise ValueError("Error el valor no puede ser nulo")
         return self.dato
 
@@ -49,7 +55,7 @@ class Field(object):
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_default()
         return u"{2} {0} {1}".format(strnull, strdefault, self.tipo)
 
 
@@ -64,7 +70,7 @@ class CharField(Field):
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_default()
         return "VARCHAR({0}) {1} {2}".format(self.max_length, strnull, strdefault)
 
 class EmailField(CharField):
@@ -85,15 +91,27 @@ class DecimalField(Field):
         self.decimal_places=decimal_places
         self.class_name = "DecimalField"
 
+    def set_dato(self, value):
+        if value != None and value != "None" and type(value) == unicode and value.strip() != "":
+            print value
+            self.dato = float(value.replace(",", "."))
+        else:
+            self.dato = None
+
     def get_dato(self):
         dato = super(DecimalField, self).get_dato()
-        format = "%0.{0}f".format(self.decimal_places)
-        dato = format % dato
-        return float(dato)
+        if self.null == False and dato == None:
+            raise ("El dato no puede ser nulo")
+        elif self.null == True and dato == None:
+            return str(dato)
+        else:
+            format = "%0.{0}f".format(self.decimal_places)
+            dato = format % dato
+            return float(dato)
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_default()
         return u"DECIMAL({0},{1}) {2} {3}".format(self.max_digits, self.decimal_places,
                                                  strnull, strdefault)
 
@@ -112,9 +130,9 @@ class DateField(Field):
     def get_pack_dato(self):
         if self.auto_now:
             self.dato = date.today()
-        elif self.auto_now_add and not self.dato:
+        elif self.auto_now_add and self.dato == None:
             self.dato = date.today()
-        elif self.null == False and not self.dato:
+        elif self.null == False and self.dato == None:
             raise ValueError("El dato no puede ser null")
 
         return u'"{0}"'.format(unicode(self.dato))
@@ -135,9 +153,9 @@ class DateTimeField(Field):
     def get_pack_dato(self):
         if self.auto_now:
             self.dato = datetime.now()
-        elif self.auto_now_add and not self.dato:
+        elif self.auto_now_add and self.dato == None:
             self.dato = datetime.now()
-        elif self.null == False and not self.dato:
+        elif self.null == False and self.dato == None:
             raise ValueError("El dato no puede ser null")
         return u'"{0}"'.format(unicode(self.dato))
 
@@ -156,6 +174,7 @@ class IntegerField(Field):
         super(IntegerField, self).__init__(**options)
         self.tipo="INTEGER"
         self.class_name = "IntegerField"
+
 
 class FloatField(Field):
     def __init__(self, **options):

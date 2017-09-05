@@ -1,58 +1,49 @@
+# @Author: Manuel Rodriguez <valle>
+# @Date:   20-Jul-2017
+# @Email:  valle.mrv@gmail.com
+# @Last modified by:   valle
+# @Last modified time: 05-Sep-2017
+# @License: Apache license vesion 2.0
+
+
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-from valleorm.models import Models
-from valleorm.campos import Campo
-from valleorm.relationship import RelationShip
+from valleorm.models import *
 
-
-class User(Models):
-   nombre = Campo(default="", tipo="TEXT")
-   mail = Campo(default="", tipo="TEXT")
+Model.GLOBAL_DB_NAME = "../db.sqlite3"
+class User(Model):
+   nombre = Field(default="", tipo="TEXT")
+   mail = Field(default="", tipo="TEXT")
    salario = RelationShip(tipo="MANY", name="salario")
-   def __init__(self):
-       super(User, self).__init__(tableName="user", dbName="valleorm.db" )
 
 
-
-class Salario(Models):
-   mes = Campo(default="", tipo="TEXT")
-   salario = Campo(default=0.0, tipo="REAL")
+class Salario(Model):
+   mes = Field(default="", tipo="TEXT")
+   salario = Field(default=0.0, tipo="REAL")
    user = RelationShip(tipo="ONE", name="user")
-   def __init__(self):
-       super(Salario, self).__init__(tableName="salario", dbName="valleorm.db" )
 
 
-Models.dropDB
-user = User()
-user.nombre = "manolo cara bolo"
-user.mail = "jjjrrisl@ejemoplo.com"
+Model.dropDB(Model.GLOBAL_DB_NAME)
+user = User(nombre="Manuel Rodriguez", mail="jjjrrisl@ejemoplo.com")
 user.save()
 
-sal = Salario()
-sal.mes = "Mayo"
-sal.salario = 1500
+sal = Salario(mes = "Mayo", salario = 1500)
 user.salario.add(sal)
 
-sal = Salario()
-sal.mes = "Junio"
-sal.salario = 1500
+sal = Salario(mes = "Junio", salario = 1500)
 user.salario.add(sal)
 
-sal = Salario()
-sal.mes = "Julio"
-sal.salario = 1500
+sal = Salario(mes = "Julio", salario = 1500)
 user.salario.add(sal)
 
-sal = Salario()
-sal.mes = "Agosto"
-sal.salario = 1500
+sal = Salario(mes = "Agosto", salario = 1500)
 user.salario.add(sal)
 
 #Load data user by ID
-user.loadByPk(1)
+user.load_by_pk(1)
 print user.toJSON()
 row = user.salario.get()
-print Models.serialize(row)
+print Model.serialize(row)

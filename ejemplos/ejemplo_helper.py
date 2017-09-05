@@ -5,7 +5,7 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: ejemplo_helper.py
 # @Last modified by:   valle
-# @Last modified time: 20-Aug-2017
+# @Last modified time: 05-Sep-2017
 # @License: Apache license vesion 2.0
 
 import os
@@ -13,7 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import names
 
-from valleorm.qsonhelper  import  QSonHelper
+from valleorm.models.qsonhelper  import  QSonHelper
 
 QSon1 = {
     'add':{
@@ -54,12 +54,21 @@ QSon3 = {
 
 
 QSon4 = {
-    'db': 'test_qson',
-    'user': {
-    }
+    "get":{
+        'db': 'test_qson',
+            'user': {
+            }
+        }
 }
 
-
-
-qsonheler = QSonHelper()
-print qsonheler.decode_qson(QSon2)
+QSon5 = {
+    "rm":{
+        'db': 'test_qson',
+            'user': {
+                'ID': 5
+            }
+        }
+}
+ 
+qsonheler = QSonHelper(path="../")
+print qsonheler.decode_qson(QSon4)

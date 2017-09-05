@@ -1,10 +1,19 @@
+# @Author: Manuel Rodriguez <valle>
+# @Date:   20-Jul-2017
+# @Email:  valle.mrv@gmail.com
+# @Last modified by:   valle
+# @Last modified time: 05-Sep-2017
+# @License: Apache license vesion 2.0
+
+
 # -*- coding: utf-8 -*-
 # allow direct execution
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from valleorm.models import Models
+from valleorm.models import Model
+Model.GLOBAL_DB_NAME = "../json_schema.db"
 
 modelUser = {
 #Required structure for each relationship 'relationTipo, relationName'
@@ -51,9 +60,9 @@ modelSalario = {
    }
 ]
 }
-Models.dropDB("valleorm.db")
-user = Models(tableName= "user", dbName="valleorm.db", model=modelUser)
-sal = Models(tableName= "salario", dbName="valleorm.db", model=modelSalario)
+Model.dropDB(Model.GLOBAL_DB_NAME)
+user = Model(tableName= "user",  model=modelUser)
+sal = Model(tableName= "salario",  model=modelSalario)
 
 user.mail = "wwwkk@loco.com"
 user.nombre = "El loco pitres"
@@ -63,21 +72,21 @@ user.save()
 sal.mes = "may"
 sal.salario = "1400"
 user.salario.add(sal)
-sal = Models(tableName= "salario", dbName="valleorm.db", model=modelSalario)
+sal = Model(tableName= "salario",  model=modelSalario)
 sal.mes = "jun"
 sal.salario = "1400"
 user.salario.add(sal)
-sal = Models(tableName= "salario", dbName="valleorm.db", model=modelSalario)
+sal = Model(tableName= "salario",  model=modelSalario)
 sal.mes = "jul"
 sal.salario = "1400"
 user.salario.add(sal)
-sal = Models(tableName= "salario", dbName="valleorm.db", model=modelSalario)
+sal = Model(tableName= "salario",  model=modelSalario)
 sal.mes = "ago"
 sal.salario = "1400"
 user.salario.add(sal)
 
 #get user by ID
-user.loadByPk(1)
+user.load_by_pk(1)
 print user.toJSON()
 row = user.salario.get()
-print Models.serialize(row)
+print Model.serialize(row)

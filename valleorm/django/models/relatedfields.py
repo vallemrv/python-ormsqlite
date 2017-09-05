@@ -4,7 +4,7 @@
 # @Date:   29-Aug-2017
 # @Email:  valle.mrv@gmail.com
 # @Last modified by:   valle
-# @Last modified time: 01-Sep-2017
+# @Last modified time: 05-Sep-2017
 # @License: Apache license vesion 2.0
 
 
@@ -16,11 +16,10 @@ class RelationShip(object):
 
     def __init__(self, **options):
         self.tipo_class = constant.TIPO_RELATION
+        self.related_class = None
         for k, v in options.items():
             setattr(self, k, v)
 
-    def init(self, class_content):
-        self.main_model_class = class_content
 
     def get_id_field_name(self):
         return "id_"+self.field_name
@@ -66,17 +65,20 @@ class ForeignKey(RelationShip):
         self.othermodel = othermodel
         self.on_delete = on_delete
 
-    def init(self, class_content):
-        self.main_model_class = class_content
+    def init(self):
         stack = inspect.stack()
         frame = stack[-1][0]
         self.main_module = inspect.getmodule(frame).__name__
         self.related_class = create_class_related(self.main_module, self.othermodel)
 
     def get_choices(self, **condition):
+        if self.related_class == None:
+            self.init()
         return self.related_class.getAll(**condition)
 
     def get_sql_pk(self):
+        if self.related_class == None:
+            self.init()
         name_main_model_class = self.main_model_class.__class__.__name__
         setattr(self, name_main_model_class.lower(), self.related_class)
         rel_many = OneToMany(othermodel=name_main_model_class,
@@ -92,19 +94,21 @@ class ForeignKey(RelationShip):
         return sql
 
     def get(self):
+        if self.related_class == None:
+            self.init()
         id_rel = getattr(self.main_model_class, self.id_field_name)
         self.related_class.load_by_pk(pk=id_rel)
         return self.related_class
 
-class ManyToMany(RelationShip):
+class ManyToManyField(RelationShip):
 
     def __init__(self, othermodel, **kargs):
-        super(ManyToMany, self).__init__(**kargs)
+        super(ManyToManyField, self).__init__(**kargs)
         self.class_name = "ManyToMany"
         self.othermodel = othermodel
+        self.tb_nexo_name = None
 
-    def init(self, class_content):
-        self.main_model_class = class_content
+    def init(self):
         stack = inspect.stack()
         frame = stack[-1][0]
         main_module = inspect.getmodule(frame).__name__
@@ -117,6 +121,9 @@ class ManyToMany(RelationShip):
     def get_sql_tb_nexo(self):
         othermodel = self.main_model_class.__class__.__name__
         if othermodel != "Model":
+            if self.related_class == None or self.tb_nexo_name == None:
+                self.init()
+
             rel = ManyToManyChild(othermodel=self.main_model_class.__class__.__name__,
                                  field_name=self.main_model_class.__class__.__name__.lower(),
                                  primary_relation = False,
@@ -136,6 +143,9 @@ class ManyToMany(RelationShip):
 
 
     def get(self, **condition):
+        if self.related_class == None or self.tb_nexo_name == None:
+            self.init()
+
         parent_id_field_name = "id_"+self.main_model_class.table_name
 
         condition["columns"] = [self.related_class.table_name+".*"]
@@ -149,12 +159,14 @@ class ManyToMany(RelationShip):
         else:
             condition["query"] = query
 
-
         return self.related_class.getAll(**condition)
 
 
     def add(self, *childs):
         from valleorm.django import models
+        if self.related_class == None or self.tb_nexo_name == None:
+            self.init()
+
         parent_id_field_name = "id_"+self.main_model_class.__class__.__name__.lower()
         for child in childs:
             child.save()
@@ -176,6 +188,8 @@ class ManyToMany(RelationShip):
 
     def delete(self, child):
         from valleorm.django.models import Model
+        if self.related_class == None or self.tb_nexo_name == None:
+            self.init()
         query = u""+self.id_field_name+"="+str(self.main_model_class.ID)+" AND " +\
         child.id_field_name+"="+str(child.ID)
         nexo = Model(table_name=self.tb_nexo_name, dbname=dbname, path=path,
@@ -183,14 +197,11 @@ class ManyToMany(RelationShip):
 
 
 
-class ManyToManyChild(ManyToMany):
+class ManyToManyChild(ManyToManyField):
     def __init__(self, othermodel, **kargs):
         super(ManyToManyChild, self).__init__(othermodel=othermodel, **kargs)
         self.class_name = "ManyToManyChild"
         self.othermodel = othermodel
-
-    def init(self, main_content):
-        self.main_model_class = main_content
 
 
     def get_sql_tb_nexo(self):
