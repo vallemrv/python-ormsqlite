@@ -3,21 +3,19 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: controllers.py
 # @Last modified by:   valle
-# @Last modified time: 20-Aug-2017
+# @Last modified time: 05-Sep-2017
 # @License: Apache license vesion 2.0
 
 import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from valleorm.models import *
 
-from valleorm.models import Models
 
 class HelperBase(object):
-    def __init__(self, JSONQuery, JSONResult, path='./'):
+    def __init__(self, JSONQuery, JSONResult, alter_table=True):
         self.JSONResult = JSONResult
         self.JSONQuery = JSONQuery
-        self.path = path
-        self.db = JSONQuery.get("db") if 'db' in JSONQuery.get("db") else JSONQuery.get("db")+".db"
+        self.db = JSONQuery.get("db")
+        self.alter_table = alter_table
         for tb, val in JSONQuery.items():
             if tb == "db":
                 pass
@@ -85,7 +83,7 @@ class AddHelper(HelperBase):
                     row_send[fieldName].append(child.toDICT())
 
     def modify_row(self, decoder):
-        row = Models(decoder['tb'], self.db, self.path, decoder['model'])
+        row = Model(decoder['tb'], self.db, decoder['model'])
         if 'ID' in decoder["fields"]:
             row.loadByPk(decoder['fields']['ID'])
             if row.ID == -1: return None
@@ -96,8 +94,8 @@ class AddHelper(HelperBase):
     def decode_qson(self, qson, tb):
         exists_tabla = False
         hasChange = False
-        if Models.exitsTable(self.db, tb, self.path):
-            model = Models.getModel(self.db, tb, self.path)
+        if Model.exitsTable(self.db, tb):
+            model = Model.getModel(self.db, tb)
             exists_tabla = True
         else:
             model = {"fields":[], "relationship": []}
@@ -161,7 +159,7 @@ class AddHelper(HelperBase):
                     model["relationship"].append(rship)
 
         if hasChange:
-            Models.alter_model(self.db, tb, model, self.path)
+            Model.alter_model(self.db, tb, model, alter_table=self.alter_table)
 
         return decoder
 
@@ -172,7 +170,8 @@ class AddHelper(HelperBase):
         if len(search) <= 0:
             hasChange = True
             model['fields'].append(field)
-            Models.alter(path=self.path, dbName=self.db, tableName=tb, field=field)
+            Model.alter(dbName=self.db, tableName=tb, field=field,
+                        alter_table=self.alter_table)
         return hasChange
 
     def compare_and_repare_ship(self,  model, qrelation):
@@ -212,34 +211,34 @@ class GetHelper(HelperBase):
     def action(self, qson, tb):
         if not 'get' in self.JSONResult:
             self.JSONResult["get"] = {tb:[]}
-        if not Models.exitsTable(self.db, tb, self.path):
+        if not Model.exitsTable(self.db, tb):
             return ''
         decoder = self.decode_qson(qson, tb)
-        row = Models(tb, self.db, self.path)
+        row = Model(tb, self.db)
         rows = row.getAll(decoder['condition'])
         for r in rows:
             row_send = r.toDICT()
             self.JSONResult['get'][tb].append(row_send)
             for dchild in decoder["childs"]["decoders"]:
                 childs = getattr(r, dchild['tb']).get(dchild["condition"])
-                row_send[dchild['tb']] = Models.toArrayDict(childs)
+                row_send[dchild['tb']] = Model.toArrayDict(childs)
 
 class RmHelper(HelperBase):
     def action(self, qson, tb):
         if not 'rm' in self.JSONResult:
             self.JSONResult["rm"] = {tb:[]}
         hasChild = False
-        if not Models.exitsTable(self.db, tb, self.path):
+        if not Model.exitsTable(self.db, tb):
             return ''
         decoder = self.decode_qson(qson, tb)
-        row = Models(tb, self.db, self.path)
+        row = Model(tb, self.db)
         rows = row.getAll(decoder['condition'])
         for r in rows:
             row_send = r.toDICT()
             for dchild in decoder["childs"]["decoders"]:
                 childs = getattr(r, dchild['tb']).get(dchild["condition"])
                 hasChild = True
-                row_send[dchild['tb']] = Models.removeRows(childs)
+                row_send[dchild['tb']] = Model.removeRows(childs)
             if hasChild:
                 row_send = {"ID": r.ID, "remove": "True"}
                 r.remove()
@@ -248,31 +247,48 @@ class RmHelper(HelperBase):
             self.JSONResult['get'][tb].append(row_send)
 
 class QSonHelper(object):
-    def __init__(self, path='./'):
+    def __init__(self, default_db=None, path="./", alter_table=True):
         self.JSONResult = {}
+        self.default_db = default_db
         self.path = path
+
 
     def decode_qson(self, qson):
         for name in qson.keys():
             if "add" == name:
                 QSONRequire = qson.get("add")
-                if not "db" in QSONRequire:
-                    raise Exception('db', "No se sabe el nombre de la db. Indique una con la Key='db'")
+                if self.default_db != None:
+                    QSONRequire["db"] = self.default_db
+                elif self.default_db == None and  "db" in QSONRequire:
+                    QSONRequire["db"] += "" if ".db" in QSONRequire["db"] else ".db"
+                else:
+                    raise Exception("No se sabe el nombre de la db desconocido.")
+                QSONRequire["db"] = os.path.join(self.path_db, QSONRequire["db"])
                 AddHelper(JSONQuery=QSONRequire,
-                          JSONResult=self.JSONResult, path=self.path)
+                          JSONResult=self.JSONResult, alter_table=alter_table)
 
             if "get" == name:
                 QSONRequire = qson.get("get")
-                if not "db" in QSONRequire:
-                    raise Exception('db', "No se sabe el nombre de la db. Indique una con la Key='db'")
+                if self.default_db != None:
+                    QSONRequire["db"] = self.default_db
+                elif self.default_db == None and  "db" in QSONRequire:
+                    QSONRequire["db"] += "" if ".db" in QSONRequire["db"] else ".db"
+                else:
+                    raise Exception("No se sabe el nombre de la db desconocido.")
+                QSONRequire["db"] = os.path.join(self.path_db, QSONRequire["db"])
                 GetHelper(JSONQuery=QSONRequire,
-                              JSONResult=self.JSONResult, path=self.path)
+                              JSONResult=self.JSONResult)
 
             if "rm" == name:
                 QSONRequire = qson.get("rm")
-                if not "db" in QSONRequire:
-                    raise Exception('db', "No se sabe el nombre de la db. Indique una con la Key='db'")
+                if self.default_db != None:
+                    QSONRequire["db"] = self.default_db
+                elif self.default_db == None and  "db" in QSONRequire:
+                    QSONRequire["db"] += "" if ".db" in QSONRequire["db"] else ".db"
+                else:
+                    raise Exception("No se sabe el nombre de la db desconocido.")
+                QSONRequire["db"] = os.path.join(self.path_db, QSONRequire["db"])
                 RmHelper(JSONQuery=QSONRequire,
-                             JSONResult=self.JSONResult, path=self.path)
+                        JSONResult=self.JSONResult)
 
         return self.JSONResult

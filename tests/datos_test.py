@@ -1,12 +1,22 @@
+# @Author: Manuel Rodriguez <valle>
+# @Date:   20-Jul-2017
+# @Email:  valle.mrv@gmail.com
+# @Last modified by:   valle
+# @Last modified time: 05-Sep-2017
+# @License: Apache license vesion 2.0
+
+
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from modelo_heredado import User, Salario, Puesto
-from valleorm.models import Models
+from valleorm.models import Model
 import unittest
 
+DB_NAME = "../db.sqlite3"
+Model.GLOBAL_DB_NAME = DB_NAME
 class DatosTest(unittest.TestCase):
 
     def runTest(self):
@@ -29,7 +39,7 @@ class DatosTest(unittest.TestCase):
 
     def add_salarios(self):
         user = User()
-        user.loadByPk(1)
+        user.load_by_pk(1)
         salario = Salario()
         salario.mes = "Mayo"
         salario.importe = 1500
@@ -64,17 +74,17 @@ class DatosTest(unittest.TestCase):
 
     def add_user_puesto(self):
         puesto = Puesto()
-        puesto.loadByPk(1)
+        puesto.load_by_pk(1)
         print puesto.toJSON()
         user = User()
-        user.loadByPk(1)
+        user.load_by_pk(1)
         print user.toJSON()
         user.puesto.add(puesto)
 
-        puesto.loadByPk(2)
+        puesto.load_by_pk(2)
         print user.toJSON()
         puesto.user.add(user)
 
 if __name__ == '__main__':
-    Models.dropDB("valleorm.db")
+    Model.dropDB(DB_NAME)
     DatosTest().runTest()

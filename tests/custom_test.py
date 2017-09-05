@@ -1,11 +1,19 @@
+# @Author: Manuel Rodriguez <valle>
+# @Date:   20-Jul-2017
+# @Email:  valle.mrv@gmail.com
+# @Last modified by:   valle
+# @Last modified time: 05-Sep-2017
+# @License: Apache license vesion 2.0
+
+
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-
-from valleorm.models import Models
 from modelo_heredado import User, Salario, Puesto
+from valleorm.models import Model
 
+Model.GLOBAL_DB_NAME = "../db.sqlite3"
 def test_foreingkey():
     print "Todos los salarios con su usuarios"
     print Salario.serialize(Salario().getAll())
@@ -20,11 +28,14 @@ def test_foreingkey():
     print Salario.serialize(Salario().getAll())
 
 def test_schema():
-    user = Models(tableName="user", dbName="valleorm.db")
-    user.loadByPk(1)
+    user = Model(tableName="user")
+    user.load_by_pk(1)
     puestos = user.puesto.get()
     print Puesto.serialize(puestos)
 
 
 if __name__ == '__main__':
-    test_schema()
+    user = User(pk=1)
+    user.salario.add(Salario(mes='jul', importe=1000.00))
+    for i in user.salario.get():
+        print i.toDICT()
