@@ -3,11 +3,11 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: controllers.py
 # @Last modified by:   valle
-# @Last modified time: 05-Sep-2017
+# @Last modified time: 06-Sep-2017
 # @License: Apache license vesion 2.0
 
 import os
-from valleorm.models import *
+from models import *
 
 
 class HelperBase(object):
@@ -101,6 +101,7 @@ class AddHelper(HelperBase):
 
         decoder = {'model':model, 'tb':tb, 'fields': {},
                    'childs': {'fieldName':'', 'decoders':[]}}
+
         for key, v in qson.items():
             if not type(v) is list and not type(v) is dict:
                 if key == "ID":
@@ -156,6 +157,7 @@ class AddHelper(HelperBase):
                     hasChange = self.compare_and_repare_ship(model, rship)
                 else:
                     model["relationship"].append(rship)
+
 
         if hasChange:
             Model.alter_model(dbName=self.db, tableName=tb, model=model)

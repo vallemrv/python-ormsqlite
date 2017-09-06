@@ -3,7 +3,7 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: controllers.py
 # @Last modified by:   valle
-# @Last modified time: 05-Sep-2017
+# @Last modified time: 06-Sep-2017
 # @License: Apache license vesion 2.0
 
 import os
@@ -11,7 +11,7 @@ from valleorm.models import *
 
 
 class HelperBase(object):
-    def __init__(self, JSONQuery, JSONResult, alter_table=True):
+    def __init__(self, JSONQuery, JSONResult):
         self.JSONResult = JSONResult
         self.JSONQuery = JSONQuery
         self.db = JSONQuery.get("db")
@@ -247,47 +247,28 @@ class RmHelper(HelperBase):
             self.JSONResult['get'][tb].append(row_send)
 
 class QSonHelper(object):
-    def __init__(self, default_db=None, path="./", alter_table=True):
+    def __init__(self, default_db):
         self.JSONResult = {}
         self.default_db = default_db
-        self.path = path
 
 
     def decode_qson(self, qson):
         for name in qson.keys():
             if "add" == name:
                 QSONRequire = qson.get("add")
-                if self.default_db != None:
-                    QSONRequire["db"] = self.default_db
-                elif self.default_db == None and  "db" in QSONRequire:
-                    QSONRequire["db"] += "" if ".db" in QSONRequire["db"] else ".db"
-                else:
-                    raise Exception("No se sabe el nombre de la db desconocido.")
-                QSONRequire["db"] = os.path.join(self.path_db, QSONRequire["db"])
+                QSONRequire["db"] = self.default_db
                 AddHelper(JSONQuery=QSONRequire,
                           JSONResult=self.JSONResult, alter_table=alter_table)
 
             if "get" == name:
                 QSONRequire = qson.get("get")
-                if self.default_db != None:
-                    QSONRequire["db"] = self.default_db
-                elif self.default_db == None and  "db" in QSONRequire:
-                    QSONRequire["db"] += "" if ".db" in QSONRequire["db"] else ".db"
-                else:
-                    raise Exception("No se sabe el nombre de la db desconocido.")
-                QSONRequire["db"] = os.path.join(self.path_db, QSONRequire["db"])
+                QSONRequire["db"] = self.default_db
                 GetHelper(JSONQuery=QSONRequire,
                               JSONResult=self.JSONResult)
 
             if "rm" == name:
                 QSONRequire = qson.get("rm")
-                if self.default_db != None:
-                    QSONRequire["db"] = self.default_db
-                elif self.default_db == None and  "db" in QSONRequire:
-                    QSONRequire["db"] += "" if ".db" in QSONRequire["db"] else ".db"
-                else:
-                    raise Exception("No se sabe el nombre de la db desconocido.")
-                QSONRequire["db"] = os.path.join(self.path_db, QSONRequire["db"])
+                QSONRequire["db"] = self.default_db
                 RmHelper(JSONQuery=QSONRequire,
                         JSONResult=self.JSONResult)
 

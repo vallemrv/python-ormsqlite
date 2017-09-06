@@ -5,7 +5,7 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: relationship.py
 # @Last modified by:   valle
-# @Last modified time: 05-Sep-2017
+# @Last modified time: 06-Sep-2017
 # @License: Apache license vesion 2.0
 
 class RelationShip(object):
@@ -27,7 +27,7 @@ class RelationShip(object):
             reg = Model(tableName=self.parent.relationName, dbName=self.parent.dbName)
             query = "{0}={1}".format("ID"+self.parent.tableName, self.parent.ID)
             query += " AND {0}={1}".format("ID"+self.fieldName, child.ID)
-            reg.loadByQuery(condition={"query":query})
+            reg.load_first_by_query(query=query)
             reg.remove()
 
     def add(self, child):
@@ -61,7 +61,7 @@ class RelationShip(object):
         if self.tipo == "ONE":
             this = Model(tableName=self.name, dbName=self.parent.dbName)
             idParent = getattr(self.parent, "ID"+sel.name)
-            this.loadByPk(idParent)
+            this.load_by_pk(idParent)
             return this
         if self.tipo == "MANY":
             this = Model(tableName=self.name, dbName=self.parent.dbName)
@@ -78,12 +78,8 @@ class RelationShip(object):
             query = "{0}={1}".format(self.parent.relationName+".ID"+
                                      self.parent.tableName, self.parent.ID)
             condition["columns"] = [self.name+".*"] if not 'columns' in condition else condition["columns"]
-            condition["joins"] = [
-                {
-                  'tableName': self.parent.relationName,
-                  'join': self.parent.relationName+".ID"+self.fieldName+"="+self.name+".ID"
-                }
-            ]
+            condition["joins"] = [ self.parent.relationName +" ON " +
+                  self.parent.relationName+".ID"+self.fieldName+"="+self.name+".ID"]
             if "query" in condition:
                 query += " AND %s" % condition.get("query")
 

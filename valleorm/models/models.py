@@ -5,7 +5,7 @@
 # @Email:  valle.mrv@gmail.com
 # @Filename: models.py
 # @Last modified by:   valle
-# @Last modified time: 05-Sep-2017
+# @Last modified time: 06-Sep-2017
 # @License: Apache license vesion 2.0
 
 
@@ -13,8 +13,8 @@ import sqlite3
 import json
 import base64
 
-from valleorm.models.fields import Field
-from valleorm.models.relationship import RelationShip
+from fields import Field
+from relationship import RelationShip
 
 class Model(object):
     GLOBAL_DB_NAME = "db.sqlite3"
@@ -39,6 +39,7 @@ class Model(object):
             self.model = Model.getModel(dbName=self.dbName, tableName=self.tableName)
 
         if self.model != None:
+            self.__compare_models__()
             self.__init_model__()
         elif not type(self) is Model:
             self.__init_campos__()
@@ -55,6 +56,30 @@ class Model(object):
             else:
                 setattr(self, k, v)
 
+    def __compare_models__(self):
+        guardado = Model.getModel(dbName=self.dbName, tableName=self.tableName)
+        hasChange = False
+        if guardado == None:
+            guardado = {"fields":[], "relationship": []}
+
+        if not "relationship" in self.model:
+            hasChange = True
+            self.model["relationship"] = []
+
+        if not "relationship" in guardado:
+            hasChange = True
+            guardado["relationship"] = []
+
+        if len(self.model["fields"]) > len(guardado["fields"]):
+            hasChange = True
+
+        if len(self.model["relationship"]) > len(guardado["relationship"]):
+            hasChange = True
+
+        if hasChange:
+            hasChange = False
+            self.__save_model__(base64.b64encode(json.dumps(self.model)))
+
 
     def __crea_tb_models__(self):
         IDprimary = "ID INTEGER PRIMARY KEY AUTOINCREMENT"
@@ -70,8 +95,6 @@ class Model(object):
 
     #Introspection of  the models
     def __init_model__(self):
-        if len(self.model['fields']) > 0 or len(self.model['relationship']) > 0:
-            self.__save_model__(base64.b64encode(json.dumps(self.model)))
         if "fields" in self.model:
             for m in self.model.get("fields"):
                 if "fieldName" in m  and "fieldDato" in m and "fieldTipo" in m:
@@ -452,13 +475,13 @@ class Model(object):
             return json.loads(base64.b64decode(reg[0]))
 
     @staticmethod
-    def alter_model(dbName, tableName, model):
+    def alter_model(dbName, tableName):
         strModel = base64.b64encode(json.dumps(model))
         sql = u"INSERT OR REPLACE INTO models_db (table_name, model) VALUES ('{0}','{1}');"
         sql = sql.format(tableName, strModel)
         db = sqlite3.connect(dbName)
         cursor= db.cursor()
-        cursor.execute(sql)
+        #cursor.execute(sql)
         db.commit()
         db.close()
 
