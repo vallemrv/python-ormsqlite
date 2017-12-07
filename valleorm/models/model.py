@@ -4,24 +4,26 @@
 # @Date:   29-Aug-2017
 # @Email:  valle.mrv@gmail.com
 # @Last modified by:   valle
-# @Last modified time: 05-Sep-2017
+# @Last modified time: 17-Oct-2017
 # @License: Apache license vesion 2.0
 
 import sqlite3
 import json
 import base64
 
-from valleorm.django.models.constant import constant
-from valleorm.django.models.fields import *
-from valleorm.django.models.relatedfields import *
+from constant import constant
+from fields import *
+from relatedfields import *
+
 
 class Model(object):
     def __init__(self, table_name=None, dbName="db.sqlite3",
                  model=None, alter=False, **options):
         self.lstCampos = []
+        self.alter = alter
         self.columns = "*"
         self.foreingKeys = []
-        self.ID = -1
+        self.id = -1
         self.table_name = table_name
         if self.table_name is None:
             self.table_name = self.__class__.__name__.lower()
@@ -29,11 +31,11 @@ class Model(object):
         self.model = model
         self.__crea_tb_schemas__()
 
-        if not self.model:
+        if self.model == None:
             self.__load_models__()
 
 
-        if self.model and not alter:
+        if self.model != None and not self.alter:
             self.__init_model__()
         elif not type(self) is Model:
             self.__init_campos__()
@@ -69,7 +71,7 @@ class Model(object):
             return None
 
     def __crea_tb_schemas__(self):
-        IDprimary = "ID INTEGER PRIMARY KEY AUTOINCREMENT"
+        IDprimary = "id INTEGER PRIMARY KEY AUTOINCREMENT"
         sql = "CREATE TABLE IF NOT EXISTS django_models_db (%s, table_name TEXT UNIQUE, model TEXT);"
         sql = sql % IDprimary
         self.execute(sql)
@@ -118,15 +120,14 @@ class Model(object):
                     setattr(self, id_field_name, IntegerField())
                     self.lstCampos.append(id_field_name)
                     self.foreingKeys.append(field.get_sql_pk())
-                if field.class_name == "ManyToMany":
+                if field.class_name == "ManyToManyField":
                     self.__crear_tb_nexo__(field)
-
         self.__save_schema__(base64.b64encode(json.dumps(self.model)))
         self.__create_if_not_exists__()
-        self.__init_model__()
+
 
     def __create_if_not_exists__(self):
-        fields = ["ID INTEGER PRIMARY KEY AUTOINCREMENT"]
+        fields = ["id INTEGER PRIMARY KEY AUTOINCREMENT"]
         for key in self.lstCampos:
             field  = super(Model, self).__getattribute__(key)
             fields.append(u"'{0}' {1}".format(key, field.toQuery()))
@@ -169,11 +170,12 @@ class Model(object):
 
     def __cargar_datos__(self, **datos):
         for k, v in datos.items():
-            if k=="ID":
-                self.ID = v
+            if k=="id":
+                self.id = v
             else:
                 setattr(self, k, v)
-                self.lstCampos.append(k)
+                if not (k in self.lstCampos):
+                    self.lstCampos.append(k)
 
     def appned_fields(self, fields, update=False,):
         if not self.model:
@@ -202,44 +204,41 @@ class Model(object):
 
     def save(self, **kargs):
         self.__cargar_datos__(**kargs)
-        self.ID = -1 if self.ID == None else self.ID
+        self.id = -1 if self.id == None else self.id
 
-        if self.ID == -1:
-            keys =[]
-            vals = []
-            for key in self.lstCampos:
-                val = super(Model, self).__getattribute__(key)
-                keys.append(key)
-                vals.append(val.get_pack_dato())
-            cols = ", ".join(keys)
-            values = ", ".join(vals)
-            sql = u"INSERT INTO {0} ({1}) VALUES ({2});".format(self.table_name,
-                                                                   cols, values)
-        else:
-            vals = []
-            for key in self.lstCampos:
-                val = super(Model, self).__getattribute__(key)
+        keys =[]
+        vals = []
+        for key in self.lstCampos:
+            val = super(Model, self).__getattribute__(key)
+            keys.append(key)
+            if not hasattr(val, 'get_pack_dato'):
+                raise ValueError("Error en los datos de campos %s" % key)
+            vals.append(val.get_pack_dato(key))
 
-                vals.append(u"{0} = {1}".format(key, val.get_pack_dato()))
-            values = ", ".join(vals)
-            sql = u"UPDATE {0}  SET {1} WHERE ID={2};".format(self.table_name,
-                                                                 values, self.ID);
+        if self.id > 0:
+            keys.append("id")
+            vals.append(str(self.id))
+        cols = ", ".join(keys)
+        values = ", ".join(vals)
+        sql = u"INSERT OR REPLACE INTO {0} ({1}) VALUES ({2});".format(self.table_name,
+                                                           cols, values);
+
         db = sqlite3.connect(self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
-        if self.ID == -1:
-            self.ID = cursor.lastrowid
+        if self.id == -1:
+            self.id = cursor.lastrowid
         db.commit()
         db.close()
 
     def delete(self):
-        self.ID = -1 if self.ID == None else self.ID
-        sql = u"DELETE FROM {0} WHERE ID={1};".format(self.table_name, self.ID)
+        self.id = -1 if self.id == None else self.id
+        sql = u"DELETE FROM {0} WHERE id={1};".format(self.table_name, self.id)
         self.execute(sql)
-        self.ID = -1
+        self.id = -1
 
     def empty(self):
-        self.ID = -1;
+        self.id = -1;
         self.execute("DELETE FROM %s;" % self.table_name)
 
     def getAll(self, **condition):
@@ -289,7 +288,7 @@ class Model(object):
             self.__cargar_datos__(**reg[0].toDICT())
 
     def load_by_pk(self, pk):
-        sql = u"SELECT * FROM {0} WHERE ID={1};".format(self.table_name, pk)
+        sql = u"SELECT * FROM {0} WHERE id={1};".format(self.table_name, pk)
         db = sqlite3.connect(self.dbName)
         cursor= db.cursor()
         cursor.execute(sql)
@@ -306,8 +305,8 @@ class Model(object):
         return json.dumps(js, ensure_ascii=False)
 
     def toDICT(self):
-        if self.ID > 0:
-            js = {"ID": self.ID}
+        if self.id > 0:
+            js = {"id": self.id}
         else:
             js = {}
         for key in self.lstCampos:
@@ -347,7 +346,7 @@ class Model(object):
     def remove_rows(registros):
         lista = []
         for r in registros:
-            lista.append({'ID': r.ID, 'success': True})
+            lista.append({'id': r.id, 'success': True})
             r.remove()
         return lista
 
@@ -411,7 +410,7 @@ class Model(object):
 
     @staticmethod
     def alter_constraint(table_name, colum_name, parent, dbName='db.sqlite3', delete=constant.CASCADE):
-        sql = u"ALTER TABLE {0} ADD COLUMN {1} INTEGER REFERENCES {2}(ID) {3};"
+        sql = u"ALTER TABLE {0} ADD COLUMN {1} INTEGER REFERENCES {2}(id) {3};"
         sql = sql.format(table_name, colum_name, parent, delete)
         db = sqlite3.connect(dbName)
         cursor= db.cursor()
