@@ -18,7 +18,7 @@ from datetime import date, datetime
 
 
 class Field(object):
-    def __init__(self, null=Fasle, default=None, **options):
+    def __init__(self, null=False, default=None, **options):
         self.tipo_class = constant.TIPO_CAMPO
         self.default = default
         self.null = null
@@ -71,7 +71,7 @@ class CharField(Field):
         how_long = len(value)
         if how_long > self.max_length:
             self.dato = value[:self.max_length-how_long]
-        else
+        else:
             self.dato = value
 
     def toQuery(self):
@@ -87,8 +87,11 @@ class EmailField(CharField):
     def set_dato(self, value):
         if not  ("@" in value and "." in value) and self.null != True:
             raise ValueError('Formato email no valido')
-        if len(value) > self.max_length
-        self.dato = value
+        how_long = len(value)
+        if how_long > self.max_length:
+            self.dato = value[:self.max_length-how_long]
+        else:
+            self.dato = value
 
 
 class DecimalField(Field):
@@ -99,16 +102,14 @@ class DecimalField(Field):
         self.class_name = "DecimalField"
 
     def set_dato(self, value):
-        if value != None and value != "None" and type(value) in (unicode, str) and value.strip() != "":
+        if type(value) in (unicode, str):
             self.dato = float(value.replace(",", "."))
         else:
             self.dato = value
 
     def get_dato(self):
-        if self.null == True and self.dato == None:
-            return str(self.dato)
-        else:
-            format = "%0.{0}f".format(self.decimal_places)
+        if type(self.dato) == float:
+            format = "0.%sf" % self.decimal_places
             dato = format % self.dato
             return float(dato)
 
