@@ -11,52 +11,9 @@
 import importlib
 import uuid
 from exceptions import ValueError
-from valleorm.django.models.constant import constant
+from constant import CASCADE, TIPO_CAMPO, TIPO_RELATION
 from decimal import *
 from datetime import date, datetime
-
-
-
-class Field(object):
-    def __init__(self, **options):
-        self.tipo_class = constant.TIPO_CAMPO
-        self.default = None
-        self.null = False
-        self.tipo = 'TEXT'
-        for k, v in options.items():
-            setattr(self, k, v)
-        self.dato = self.default
-
-    def get_pack_dato(self):
-        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or self.dato is None:
-            return u'"{0}"'.format(unicode(self.get_dato()))
-        else:
-            return str(self.get_dato())
-
-    def get_pack_default(self):
-        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or self.dato is None:
-            return u'"{0}"'.format(unicode(self.default))
-        else:
-            return str(self.default)
-
-
-    def get_dato(self):
-        if self.null == False and self.dato == None:
-            raise ValueError("Error el valor no puede ser nulo")
-        return self.dato
-
-    def set_dato(self, value):
-        self.dato = value
-
-    def get_serialize_data(self, field_name):
-        self.field_name = field_name
-        stado = self.__dict__
-        return stado
-
-    def toQuery(self):
-        strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_default()
-        return u"{2} {0} {1}".format(strnull, strdefault, self.tipo)
 
 
 

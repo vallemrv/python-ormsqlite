@@ -15,20 +15,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from valleorm import models
 
 class User(models.Model):
-   nombre = models.Field(default="", tipo="TEXT")
-   mail = models.Field(default="", tipo="TEXT")
-   salario = models.RelationShip(tipo="MANY", name="salario")
-   puesto = models.RelationShip(tipo="MANYTOMANY", name="puesto")
-
-
-
+   nombre = models.CharField(max_length=100)
+   mail = models.EmailField()
+  
 class Salario(models.Model):
-   mes = models.Field(default="", tipo="TEXT")
-   importe = models.Field(default=0.0, tipo="REAL")
-   user = models.RelationShip(tipo="ONE", name="user")
-
+  pass
 
 class Puesto(models.Model):
-    nombre = models.Field(default="", tipo="TEXT")
-    des = models.Field(default="", tipo="TEXT")
-    user = models.RelationShip(tipo="MANYTOMANY", name="user")
+  pass 

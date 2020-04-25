@@ -5,10 +5,9 @@
 # @Last modified time: 06-Sep-2017
 # @License: Apache license vesion 2.0
 
-from valleorm.django.models.constant import constant
-from valleorm.django.models.fields import *
-from valleorm.django.models.relatedfields import *
-from valleorm.django.models.model import Model
-from valleorm.django.models.qsonhelper import QSonHelper
+from .constant import *
+from .fields import *
+from .relatedfields import *
+from .model import Model
+from .qsonhelper import QSonHelper
 
-CASCADE = constant.CASCADE
