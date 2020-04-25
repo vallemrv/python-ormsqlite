@@ -11,9 +11,9 @@ import sqlite3
 import json
 import base64
 
-from valleorm.django.models.constant import constant
-from valleorm.django.models.fields import *
-from valleorm.django.models.relatedfields import *
+from . import constant
+from .fields import *
+from .relatedfields import *
 
 class Model(object):
     def __init__(self, table_name=None, dbName="db.sqlite3",

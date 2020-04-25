@@ -10,7 +10,7 @@
 
 import inspect
 import importlib
-from valleorm.django.models.constant import constant
+from . import constant
 
 class RelationShip(object):
 

@@ -10,14 +10,55 @@
 
 import importlib
 import uuid
-from exceptions import ValueError
-from constant import CASCADE, TIPO_CAMPO, TIPO_RELATION
+from builtins import ValueError
+from . import constant
 from decimal import *
 from datetime import date, datetime
 
 
 
-class CharField(Field):
+class __Field__(object):
+    def __init__(self, **options):
+        self.tipo_class = constant.TIPO_CAMPO
+        self.default = None
+        self.null = False
+        self.tipo = 'TEXT'
+        for k, v in options.items():
+            setattr(self, k, v)
+        self.dato = self.default
+
+    def get_pack_dato(self):
+        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or self.dato is None:
+            return u'"{0}"'.format(self.get_dato())
+        else:
+            return str(self.get_dato())
+
+    def get_pack_default(self):
+        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or self.dato is None:
+            return u'"{0}"'.format((self.default))
+        else:
+            return str(self.default)
+
+
+    def get_dato(self):
+        if self.null == False and self.dato == None:
+            raise ValueError("Error el valor no puede ser nulo")
+        return self.dato
+
+    def set_dato(self, value):
+        self.dato = value
+
+    def get_serialize_data(self, field_name):
+        self.field_name = field_name
+        stado = self.__dict__
+        return stado
+
+    def toQuery(self):
+        strnull = 'NOT NULL' if not self.null else 'NULL'
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_default()
+        return u"{2} {0} {1}".format(strnull, strdefault, self.tipo)
+
+class CharField(__Field__):
     def __init__(self, max_length, **options):
         super(CharField, self).__init__(**options)
         self.tipo="VARCHAR"
@@ -41,7 +82,7 @@ class EmailField(CharField):
         self.dato = value
 
 
-class DecimalField(Field):
+class DecimalField(__Field__):
     def __init__(self, max_digits, decimal_places, **options):
         super(DecimalField, self).__init__(**options)
         self.max_digits=max_digits
@@ -50,7 +91,6 @@ class DecimalField(Field):
 
     def set_dato(self, value):
         if value != None and value != "None" and type(value) == unicode and value.strip() != "":
-            print value
             self.dato = float(value.replace(",", "."))
         else:
             self.dato = None
@@ -72,7 +112,7 @@ class DecimalField(Field):
         return u"DECIMAL({0},{1}) {2} {3}".format(self.max_digits, self.decimal_places,
                                                  strnull, strdefault)
 
-class DateField(Field):
+class DateField(__Field__):
     def __init__(self, auto_now=False, auto_now_add=True, **options):
         super(DateField, self).__init__(**options)
         self.tipo="DATE"
@@ -95,7 +135,7 @@ class DateField(Field):
         return u'"{0}"'.format(unicode(self.dato))
 
 
-class DateTimeField(Field):
+class DateTimeField(__Field__):
     def __init__(self, auto_now=False, auto_now_add=False, **options):
         super(DateTimeField, self).__init__(**options)
         self.tipo="DATETIME"
@@ -117,7 +157,7 @@ class DateTimeField(Field):
         return u'"{0}"'.format(unicode(self.dato))
 
 
-class BooleanField(Field):
+class BooleanField(__Field__):
     def __init__(self, **options):
         super(BooleanField, self).__init__(**options)
         self.tipo="BOOL"
@@ -126,28 +166,28 @@ class BooleanField(Field):
     def set_dato(self, value):
         self.dato = 1 if value else 0
 
-class IntegerField(Field):
+class IntegerField(__Field__):
     def __init__(self, **options):
         super(IntegerField, self).__init__(**options)
         self.tipo="INTEGER"
         self.class_name = "IntegerField"
 
 
-class FloatField(Field):
+class FloatField(__Field__):
     def __init__(self, **options):
         super(FloatField, self).__init__(**options)
         self.tipo="REAL"
         self.class_name = "FloatField"
 
 
-class TextField(Field):
+class TextField(__Field__):
     def __init__(self, **options):
         super(TextField, self).__init__(**options)
         self.tipo="TEXT"
         self.class_name = "TextField"
 
 
-class UUIDField(Field):
+class UUIDField(__Field__):
     def __init__(self, **options):
         super(UUIDField, self).__init__(**options)
         self.class_name = "UUIDField"
