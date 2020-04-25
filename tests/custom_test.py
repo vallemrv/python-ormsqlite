@@ -15,27 +15,25 @@ from valleorm.models import Model
 
 Model.GLOBAL_DB_NAME = "../db.sqlite3"
 def test_foreingkey():
-    print "Todos los salarios con su usuarios"
-    print Salario.serialize(Salario().getAll())
+    print ("Todos los salarios con su usuarios")
+    print (Salario.serialize(Salario().getAll()))
 
     user = User()
-    print "Todos los usuarios"
-    print User.serialize(User().getAll())
+    print ("Todos los usuarios")
+    print (User.serialize(User().getAll()))
     user.vaciar()
-    print "Usuarios despues de vaciar no puede haber"
-    print User.serialize(User().getAll())
-    print "Salarios despues de vaciar usuarios no puede haber"
-    print Salario.serialize(Salario().getAll())
+    print ("Usuarios despues de vaciar no puede haber")
+    print (User.serialize(User().getAll()))
+    print ("Salarios despues de vaciar usuarios no puede haber")
+    print (Salario.serialize(Salario().getAll()))
 
 def test_schema():
     user = Model(tableName="user")
     user.load_by_pk(1)
     puestos = user.puesto.get()
-    print Puesto.serialize(puestos)
+    print( Puesto.serialize(puestos))
 
 
 if __name__ == '__main__':
-    user = User(pk=1)
-    user.salario.add(Salario(mes='jul', importe=1000.00))
-    for i in user.salario.get():
-        print i.toDICT()
+    for u in User().getAll():
+        print(u.nombre)

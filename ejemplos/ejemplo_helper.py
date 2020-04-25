@@ -71,4 +71,4 @@ QSon5 = {
 }
  
 qsonheler = QSonHelper(path="../")
-print qsonheler.decode_qson(QSon4)
+print (qsonheler.decode_qson(QSon4))

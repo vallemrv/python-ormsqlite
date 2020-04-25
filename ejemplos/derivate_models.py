@@ -44,6 +44,6 @@ user.salario.add(sal)
 
 #Load data user by ID
 user.load_by_pk(1)
-print user.toJSON()
+print (user.toJSON())
 row = user.salario.get()
-print Model.serialize(row)
+print(Model.serialize(row))

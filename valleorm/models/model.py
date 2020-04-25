@@ -50,7 +50,7 @@ class Model(object):
                 setattr(self, k, v)
 
     def __setattr__(self, attr, value):
-        es_dato_simple = type(value) in (str, int, bool, float, unicode)
+        es_dato_simple = type(value) in (str, int, bool, float)
         es_dato_simple = es_dato_simple and hasattr(self, 'lstCampos') and attr in self.lstCampos
         if es_dato_simple:
             field = super(Model, self).__getattribute__(attr)
@@ -244,14 +244,16 @@ class Model(object):
 
     def getAll(self, **condition):
         self.columns = "*" if not 'columns' in condition else ", ".join(condition.get("columns"))
-        order = "" if not 'order' in condition else "ORDER BY %s" % unicode(condition.get('order'))
-        query = "" if not 'query' in condition else "WHERE %s" % unicode(condition.get("query"))
+        order = "" if not 'order' in condition else "ORDER BY %s" % str(condition.get('order'))
+        query = "" if not 'query' in condition else "WHERE %s" % str(condition.get("query"))
         limit = "" if not 'limit' in condition else "LIMIT %s" % condition.get("limit")
         offset = "" if not 'offset' in condition else "OFFSET %s" % condition.get('offset')
         joins = "" if not 'joins' in condition else self.__getenerate_joins__(condition.get("joins"))
         group = "" if not 'group' in condition else "GROUP BY %s" % condition.get("group")
         sql = u"SELECT {0} FROM {1} {2} {3} {4} {5} {6} {7};".format(self.columns, self.table_name,
                                                          joins, query, order, group, limit, offset)
+
+                                                    
         return self.select(sql)
 
     def select(self, sql):
