@@ -28,35 +28,39 @@ class __Field__(object):
         self.dato = self.default
 
     def get_pack_dato(self):
-        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or self.dato is None:
+        if self.tipo in ["TEXT", "VARCHAR", "DATE", "DATETIME"]:
             return u'"{0}"'.format(self.get_dato())
         else:
             return str(self.get_dato())
 
-    def get_pack_default(self):
-        if self.tipo == "TEXT" or self.tipo == "VARCHAR" or self.dato is None:
-            return u'"{0}"'.format((self.default))
-        else:
-            return str(self.default)
-
-
     def get_dato(self):
-        if self.null == False and self.dato == None:
+        if self.dato == None and self.default != None:
+            self.dato = self.default
+        elif self.null == False and self.dato == None:
             raise ValueError("Error el valor no puede ser nulo")
         return self.dato
 
     def set_dato(self, value):
         self.dato = value
 
+   
     def get_serialize_data(self, field_name):
         self.field_name = field_name
-        stado = self.__dict__
-        return stado
+        estado = self.__dict__
+        return estado
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_default()
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
         return u"{2} {0} {1}".format(strnull, strdefault, self.tipo)
+
+    def get_str_value(self):
+        return str(self.get_dato())
+
+
+
+class TextField(__Field__):
+    pass
 
 class CharField(__Field__):
     def __init__(self, max_length, **options):
@@ -68,7 +72,7 @@ class CharField(__Field__):
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_default()
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
         return "VARCHAR({0}) {1} {2}".format(self.max_length, strnull, strdefault)
 
 class EmailField(CharField):
@@ -88,24 +92,16 @@ class DecimalField(__Field__):
         self.max_digits=max_digits
         self.decimal_places=decimal_places
         self.class_name = "DecimalField"
+        self.tipo = "NUMERIC"
 
     def set_dato(self, value):
-        if value != None and value != "None" and type(value) == unicode and value.strip() != "":
+        if value != None and type(value) == str and value.strip() != "":
             self.dato = float(value.replace(",", "."))
         else:
-            self.dato = None
-
-    def get_dato(self):
-        dato = super(DecimalField, self).get_dato()
-        if self.null == False and dato == None:
-            raise ("El dato no puede ser nulo")
-        elif self.null == True and dato == None:
-            return str(dato)
-        else:
-            format = "%0.{0}f".format(self.decimal_places)
-            dato = format % dato
-            return float(dato)
-
+            self.dato = value
+        format = "%0.{0}f".format(self.decimal_places)
+        self.dato = Decimal(format % self.dato)
+        
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
         strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_default()
@@ -120,19 +116,29 @@ class DateField(__Field__):
         self.auto_now=auto_now
         self.auto_now_add=auto_now_add
 
+    def set_dato(self, value):
+        if value is str:
+            self.dato = datetime.strptime(value, '%m/%d/%y')
+        else:
+            self.dato = value
 
     def get_dato(self):
-        return self.dato
-
-    def get_pack_dato(self):
         if self.auto_now:
-            self.dato = date.today()
+            self.dato = datetime.now()
         elif self.auto_now_add and self.dato == None:
-            self.dato = date.today()
+            self.dato = datetime.now()
         elif self.null == False and self.dato == None:
             raise ValueError("El dato no puede ser null")
 
-        return u'"{0}"'.format(unicode(self.dato))
+        return self.dato
+
+
+    def get_pack_dato(self):
+        return u'"{0}"'.format(self.get_dato().strftime('%m/%d/%y'))
+
+    def get_str_value(self):
+        return self.get_dato().strftime('%m/%d/%y')
+
 
 
 class DateTimeField(__Field__):
@@ -143,18 +149,28 @@ class DateTimeField(__Field__):
         self.auto_now=auto_now
         self.auto_now_add=auto_now_add
 
+    def set_dato(self, value):
+        if value is str:
+            self.dato = datetime.strptime(value, '%m/%d/%y %H:%M:%S')
+        else:
+            self.dato = value
+
     def get_dato(self):
-        return self.dato
-
-
-    def get_pack_dato(self):
         if self.auto_now:
             self.dato = datetime.now()
         elif self.auto_now_add and self.dato == None:
             self.dato = datetime.now()
         elif self.null == False and self.dato == None:
             raise ValueError("El dato no puede ser null")
-        return u'"{0}"'.format(unicode(self.dato))
+
+        return self.dato
+
+
+    def get_pack_dato(self):
+        return u'"{0}"'.format(self.get_dato().strftime('%m/%d/%y %H:%M:%S'))
+
+    def get_str_value(self):
+        return self.get_dato().strftime('%m/%d/%y %H:%M:%S')
 
 
 class BooleanField(__Field__):
@@ -164,7 +180,13 @@ class BooleanField(__Field__):
         self.class_name = "BooleanField"
 
     def set_dato(self, value):
-        self.dato = 1 if value else 0
+        if value:
+            self.dato = True
+        else:
+            self.dato = False
+
+    def get_pack_dato(self):
+        return "1" if self.get_dato() else "0"
 
 class IntegerField(__Field__):
     def __init__(self, **options):
@@ -202,7 +224,7 @@ class UUIDField(__Field__):
 
 
 def create_field_class(config):
-    modulo = importlib.import_module('valleorm.django.models.fields')
+    modulo = importlib.import_module('valleorm.models.fields')
     class_name = config.get("class_name")
     nclass = getattr(modulo,  class_name)
     return nclass(**config)

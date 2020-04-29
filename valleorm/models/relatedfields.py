@@ -12,7 +12,7 @@ import inspect
 import importlib
 from . import constant
 
-class RelationShip(object):
+class __RelationShip__(object):
 
     def __init__(self, **options):
         self.tipo_class = constant.TIPO_RELATION
@@ -24,22 +24,21 @@ class RelationShip(object):
     def get_id_field_name(self):
         return "id_"+self.field_name
 
-    def get(self, **condition):
-        pass
-
+    
     def get_serialize_data(self, field_name):
         self.field_name = field_name
         lista = self.__dict__
-        stado = {}
+        estado = {}
         for k, v in lista.items():
             if type(v) in (str, int, bool):
-                stado[k] = v
+                estado[k] = v
 
-        return stado
+        return estado
+
 
     id_field_name = property(get_id_field_name)
 
-class OneToMany(RelationShip):
+class OneToMany(__RelationShip__):
     def __init__(self, othermodel, **kargs):
         super(OneToMany, self).__init__(**kargs)
         self.class_name = "OneToMany"
@@ -50,15 +49,15 @@ class OneToMany(RelationShip):
         AND = ""
         if 'query' in condition:
             AND = " AND "
-        condition['query'] += AND + u"{0}={1}".format(self.id_field_name_child, self.main_model_class.ID)
+        condition['query'] += AND + u"{0}={1}".format(self.id_field_name_child, self.main_model_class.id)
         return related_class.getAll(**condition)
 
 
     def add(self, child):
-        setattr(child, self.id_field_name_child, self.main_model_class.ID)
+        setattr(child, self.id_field_name_child, self.main_model_class.id)
         child.save()
 
-class ForeignKey(RelationShip):
+class ForeignKey(__RelationShip__):
     def __init__(self, othermodel, on_delete, **kargs):
         super(ForeignKey, self).__init__(**kargs)
         self.class_name = "ForeignKey"
@@ -85,10 +84,10 @@ class ForeignKey(RelationShip):
                              field_name=name_main_model_class.lower(),
                              id_field_name_child=self.id_field_name,
                              main_module=self.main_module)
-
+       
         self.related_class.append_relation(rel_many)
         related_tb = self.related_class.table_name
-        sql = u"FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
+        sql = u"FOREIGN KEY({0}) REFERENCES {1}(id) ON DELETE CASCADE"
         sql = sql.format(self.id_field_name, related_tb)
 
         return sql
@@ -100,7 +99,7 @@ class ForeignKey(RelationShip):
         self.related_class.load_by_pk(pk=id_rel)
         return self.related_class
 
-class ManyToManyField(RelationShip):
+class ManyToManyField(__RelationShip__):
 
     def __init__(self, othermodel, **kargs):
         super(ManyToManyField, self).__init__(**kargs)
@@ -130,10 +129,10 @@ class ManyToManyField(RelationShip):
                                  tb_nexo_name=self.tb_nexo_name)
             self.related_class.append_relation(rel)
 
-            id_nexo = "ID INTEGER PRIMARY KEY AUTOINCREMENT"
-            frgKey = u"FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE, "
+            id_nexo = "id INTEGER PRIMARY KEY AUTOINCREMENT"
+            frgKey = u"FOREIGN KEY({0}) REFERENCES {1}(id) ON DELETE CASCADE, "
             frgKey = frgKey.format(self.id_field_name, self.main_model_class.table_name)
-            frgKey += u"FOREIGN KEY({0}) REFERENCES {1}(ID) ON DELETE CASCADE"
+            frgKey += u"FOREIGN KEY({0}) REFERENCES {1}(id) ON DELETE CASCADE"
             frgKey = frgKey.format(rel.id_field_name, self.related_class.table_name)
             sql = u"CREATE TABLE IF NOT EXISTS {0} ({1}, {2} ,{3}, {4});"
             sql = sql.format(self.tb_nexo_name, id_nexo, self.id_field_name+" INTEGER ",
@@ -152,8 +151,8 @@ class ManyToManyField(RelationShip):
 
         condition["joins"] = [(self.tb_nexo_name + " ON "+ \
                              self.tb_nexo_name+"."+self.id_field_name+\
-                             "="+self.related_class.table_name+".ID")]
-        query = parent_id_field_name+"="+str(self.main_model_class.ID)
+                             "="+self.related_class.table_name+".id")]
+        query = parent_id_field_name+"="+str(self.main_model_class.id)
         if 'query' in condition:
             condition["query"] += " AND " + query
         else:
@@ -163,7 +162,7 @@ class ManyToManyField(RelationShip):
 
 
     def add(self, *childs):
-        from valleorm.django import models
+        from valleorm import models
         if self.related_class == None or self.tb_nexo_name == None:
             self.init()
 
@@ -176,22 +175,22 @@ class ManyToManyField(RelationShip):
             nexo.appned_fields([models.IntegerField(field_name=self.id_field_name),
                                models.IntegerField(field_name=parent_id_field_name)])
 
-            query = self.id_field_name+"="+str(child.ID)+" AND " +\
-                        parent_id_field_name+"="+str(self.main_model_class.ID)
+            query = self.id_field_name+"="+str(child.id)+" AND " +\
+                        parent_id_field_name+"="+str(self.main_model_class.id)
             reg_nexo = nexo.getAll(query=query)
 
             if len(reg_nexo) <= 0:
-                setattr(nexo, parent_id_field_name, self.main_model_class.ID)
-                setattr(nexo, self.id_field_name, child.ID)
+                setattr(nexo, parent_id_field_name, self.main_model_class.id)
+                setattr(nexo, self.id_field_name, child.id)
                 nexo.save()
 
 
     def delete(self, child):
-        from valleorm.django.models import Model
+        from valleorm.models import Model
         if self.related_class == None or self.tb_nexo_name == None:
             self.init()
-        query = u""+self.id_field_name+"="+str(self.main_model_class.ID)+" AND " +\
-        child.id_field_name+"="+str(child.ID)
+        query = u""+self.id_field_name+"="+str(self.main_model_class.id)+" AND " +\
+        child.id_field_name+"="+str(child.id)
         nexo = Model(table_name=self.tb_nexo_name, dbname=dbname, path=path,
                      query=query)
 
@@ -221,8 +220,8 @@ class ManyToManyChild(ManyToManyField):
 
         condition["joins"] = [(self.tb_nexo_name + " ON "+ \
                              self.tb_nexo_name+"."+self.id_field_name+\
-                             "="+self.related_class.table_name+".ID")]
-        query = parent_id_field_name+"="+str(self.main_model_class.ID)
+                             "="+self.related_class.table_name+".id")]
+        query = parent_id_field_name+"="+str(self.main_model_class.id)
         if 'query' in condition:
             condition["query"] += " AND " + query
         else:
@@ -234,20 +233,25 @@ class ManyToManyChild(ManyToManyField):
 
 
 
-class OneToOneField(RelationShip):
+class OneToOneField(__RelationShip__):
     def __init__(self,othermodel, on_delete, parent_link=False,  **kargs):
         super(OneToOneField, self).__init__(**kargs)
 
 
 def create_class_related(module, class_name):
+    '''
     modulo = importlib.import_module(module)
-    nclass = getattr(modulo,  class_name)
-    return nclass()
+    print(modulo, class_name)
+   
+    nclass = getattr(modulo,  str(class_name))
+    '''
+    return class_name()
 
 def create_relation_class(config, parent):
-    modulo = importlib.import_module('valleorm.django.models.relatedfields')
+    modulo = importlib.import_module('valleorm.models.relatedfields')
     class_name = config.get("class_name")
     nclass = getattr(modulo,  class_name)
     rel_new = nclass(**config)
     rel_new.main_model_class = parent
     return rel_new
+    

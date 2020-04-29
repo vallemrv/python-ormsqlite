@@ -9,4 +9,7 @@ TIPO_CAMPO = "tipo_campo"
 TIPO_RELATION = "tipo_relation"
 CASCADE = "ON DELETE CASCADE"
 
+STATE_NEW = "new"
+STATE_DELETE = "delete"
+STATE_LOAD = "load"
 
