@@ -34,9 +34,7 @@ class __Field__(object):
             return str(self.get_dato())
 
     def get_dato(self):
-        if self.dato == None and self.default != None:
-            self.dato = self.default
-        elif self.null == False and self.dato == None:
+        if self.null == False and self.dato == None:
             raise ValueError("Error el valor no puede ser nulo")
         return self.dato
 
@@ -44,14 +42,14 @@ class __Field__(object):
         self.dato = value
 
    
-    def get_serialize_data(self, field_name):
+    def serialize_field(self, field_name):
         self.field_name = field_name
         estado = self.__dict__
         return estado
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato()
         return u"{2} {0} {1}".format(strnull, strdefault, self.tipo)
 
     def get_str_value(self):
@@ -72,7 +70,7 @@ class CharField(__Field__):
 
     def toQuery(self):
         strnull = 'NOT NULL' if not self.null else 'NULL'
-        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato(self.default)
+        strdefault = "" if not self.default else " DEFAULT %s" % self.get_pack_dato()
         return "VARCHAR({0}) {1} {2}".format(self.max_length, strnull, strdefault)
 
 class EmailField(CharField):
@@ -117,10 +115,11 @@ class DateField(__Field__):
         self.auto_now_add=auto_now_add
 
     def set_dato(self, value):
-        if value is str:
+        if type(value) is str:
             self.dato = datetime.strptime(value, '%m/%d/%y')
         else:
             self.dato = value
+
 
     def get_dato(self):
         if self.auto_now:
@@ -150,10 +149,11 @@ class DateTimeField(__Field__):
         self.auto_now_add=auto_now_add
 
     def set_dato(self, value):
-        if value is str:
+        if type(value) is str:
             self.dato = datetime.strptime(value, '%m/%d/%y %H:%M:%S')
         else:
             self.dato = value
+        
 
     def get_dato(self):
         if self.auto_now:
@@ -193,6 +193,7 @@ class IntegerField(__Field__):
         super(IntegerField, self).__init__(**options)
         self.tipo="INTEGER"
         self.class_name = "IntegerField"
+        
 
 
 class FloatField(__Field__):
@@ -220,7 +221,7 @@ class UUIDField(__Field__):
 
 
     def toQuery(self):
-        return "TEXT {0}".format('NOT NULL')
+        return "TEXT UNIQUE NOT NULL"
 
 
 def create_field_class(config):
