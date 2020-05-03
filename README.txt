@@ -48,7 +48,6 @@ from a in als:
    print(a.toJSON())
    
    
-   
 Condition example
 m = Musician.filter(first_name="caracolo")
 m = Musician.filter(first_name__contain="ca")
